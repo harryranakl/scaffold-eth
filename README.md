@@ -1,4 +1,4 @@
-# 🏗 Scaffold-ETH
+# 🏗 Scaffold-ETH - 🤠 wild west: decode messages
 
 > everything you need to build on Ethereum! 🚀
 
@@ -17,22 +17,23 @@ Prerequisites: [Node](https://nodejs.org/en/download/) plus [Yarn](https://class
 git clone https://github.com/austintgriffith/scaffold-eth.git
 ```
 
-> install and start your 👷‍ Hardhat chain:
+> install and start your 📱 frontend:
 
 ```bash
 cd scaffold-eth
+git checkout -b wild-west-metaverse-decode-messages
 yarn install
-yarn chain
-```
-
-> in a second terminal window, start your 📱 frontend:
-
-```bash
-cd scaffold-eth
 yarn start
 ```
 
-> in a third terminal window, 🛰 deploy your contract:
+> in a second terminal window, start your 👷‍ Hardhat chain (optional):
+
+```bash
+cd scaffold-eth
+yarn chain
+```
+
+> in a third terminal window, 🛰 deploy your contract (optional):
 
 ```bash
 cd scaffold-eth
@@ -46,6 +47,10 @@ yarn deploy
 💼 Edit your deployment scripts in `packages/hardhat/deploy`
 
 📱 Open http://localhost:3000 to see the app
+
+# Preview
+🎛 http://eth-wild-west.surge.sh/
+![preview]()
 
 # 📚 Documentation
 
