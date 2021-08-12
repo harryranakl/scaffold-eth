@@ -177,14 +177,14 @@ function App(props) {
                     background: "#9cb8e0",
                     padding: "4px",
                     borderRadius: "4px",
-                    border: "#000 1px solid",
+                    border: "1px solid",
                   }}
                 >
                   {self}
                 </span>
               )}
             </Text>
-            <TextArea autoSize value={data} style={{ padding: "4px" }} />
+            <TextArea autoSize value={data} style={self ? {padding: "4px", background: "#9cb8e0", border: "1px solid",} : { padding: "4px" }} />
             <Text style={{ overflowWrap: "anywhere", fontSize: 12 }}>
               value: {val} eth
               <br />
