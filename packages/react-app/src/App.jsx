@@ -1,9 +1,10 @@
-import { Row, Col, Layout, Space, Divider, Radio, Input, Table } from "antd";
+import { Row, Col, Layout, Space, Divider, Radio, Input, Table, Card } from "antd";
 import "antd/dist/antd.css";
 import "./App.css";
 import React, { useState } from "react";
 // import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
 import axios from "axios";
+import { addABI, decodeLogs } from "abi-decoder";
 
 import { HeaderSt } from "./components";
 import { useOnBlock, usePoller } from "./hooks";
@@ -13,6 +14,125 @@ import { INFURA_ID, NETWORK, NETWORKS } from "./constants";
 const { ethers } = require("ethers");
 const { Header, Footer, Content } = Layout;
 
+const eventsJson = [
+  //erc20
+  { "text_signature": "event Transfer(address indexed from, address indexed to, uint256 value)", },
+  { "text_signature": "event Approval(address indexed owner, address indexed spender, uint256 value)", },
+  //WETH
+  { "text_signature": "event Deposit(address indexed dst, uint wad)", },
+  { "text_signature": "event Withdrawal(address indexed src, uint wad)", },
+  //IUniswapExchange
+  { "text_signature": "event TokenPurchase(address indexed buyer, uint256 indexed eth_sold, uint256 indexed tokens_bought)" },
+  { "text_signature": "event EthPurchase(address indexed buyer, uint256 indexed tokens_sold, uint256 indexed eth_bought)" },
+  { "text_signature": "event AddLiquidity(address indexed provider, uint256 indexed eth_amount, uint256 indexed token_amount)" },
+  { "text_signature": "event RemoveLiquidity(address indexed provider, uint256 indexed eth_amount, uint256 indexed token_amount)" },
+  //IUniswapV2Pair
+  { "text_signature": "event Mint(address indexed sender, uint amount0, uint amount1)" },
+  { "text_signature": "event Burn(address indexed sender, uint amount0, uint amount1, address indexed to)" },
+  { "text_signature": "event Swap(address indexed sender, uint amount0, uint amount1, uint amount0Out, uint amount1Out, address indexed to)" },
+  { "text_signature": "event Sync(uint112 reserve0, uint112 reserve1)" }
+];
+
+const addEvents = async () => {
+  eventsJson.map(async e => {
+    let { text_signature } = e;
+    try {
+      let i = new ethers.utils.Interface([text_signature]);
+      await addABI(i.fragments);
+    } catch (e) {
+      // console.log(e);
+    }
+  });
+};
+addEvents();
+
+const DEXES = ["coingecko"];
+const tokensList = [];
+const loadTokens = () => {
+  DEXES.map(d => {
+    let { tokens } = require(`../json/${d}-json.json`)
+    tokensList.push(tokens);
+  })
+}
+loadTokens();
+
+const getToken = (_address) => {
+  let c = { 
+    coin: "", 
+    logo: "",
+    decimals: 18
+  };
+  _address = _address.toLowerCase();
+
+  for (let d in tokensList) {
+    for (let t in tokensList[d]) {
+      let o = tokensList[d][t];
+      try{
+        if (o.address.toLowerCase() === _address) {
+          c.coin = o.symbol;
+          c.logo = o.logoURI ? o.logoURI : "";
+          c.decimals = o.decimals ? o.decimals : 0;
+          break;
+        } 
+      } catch(e){
+        // console.log(e)
+      }
+    }
+
+    if (c.coin !== "") {
+      break;
+    }
+  }
+  // console.log('coin --', c);
+  return c;
+}
+
+const txLink = (_tx) => `https://etherscan.io/tx/${_tx}`;
+const addressLink = _a => `https://etherscan.io/address/${_a}`;
+const shortTxt = _t => `${_t.substr(0, 20)}..`;
+
+const fromWei = i => {
+  return i / 10 ** 18;
+};
+const fromGWei = i => {
+  return i / 10 ** 9;
+};
+const toGWei = i => {
+  return i * 10 ** 9;
+};
+
+// sort array ascending
+const asc = arr => arr.sort((a, b) => a - b);
+
+const sum = arr => arr.reduce((a, b) => a + b, 0);
+
+const mean = arr => sum(arr) / arr.length;
+
+// sample standard deviation
+const std = (arr) => {
+    const mu = mean(arr);
+    const diffArr = arr.map(a => (a - mu) ** 2);
+    return Math.sqrt(sum(diffArr) / (arr.length - 1));
+};
+
+const quantile = (arr, q) => {
+    const sorted = asc(arr);
+    const pos = (sorted.length - 1) * q;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    if (sorted[base + 1] !== undefined) {
+        return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+    } else {
+        return sorted[base];
+    }
+};
+
+const gasConverter = g => {
+  const gm = g * 100000000;
+  const gd = parseInt(gm, 10) / 10 ** 9;
+  return gd;
+};
+
 // 😬 Sorry for all the console logging
 // const DEBUG = true;
 
@@ -21,289 +141,147 @@ const mainnetInfura = navigator.onLine ? new ethers.providers.StaticJsonRpcProvi
 function App(props) {
   const mainnetProvider = mainnetInfura;
 
-  const [gasPrices, setGasPrices] = useState({});
-  const [gas, setGas] = useState(0);
-  const [gasEth, setGasEth] = useState(0);
-  const [gasUsd, setGasUsd] = useState(0);
-  const [gasLimit, setGasLimit] = useState(30000);
-  const [ethPrice, setEthPrice] = useState(0);
-
   const [blockNum, setBlockNum] = useState(0);
-  const [BlockBaseGas, setBlockBaseGas] = useState(0);
-  const [BlockBaseGasEth, setBlockBaseGasEth] = useState(0);
-  const [BlockGasUsed, setBlockGasUsed] = useState(0);
-  const [BlockGasLimit, setBlockGasLimit] = useState(0);
-  const [BlockGasPrices, setBlockGasPrices] = useState({});
-  const [BlockMaxFees, setBlockMaxFees] = useState({});
-  const [BlockMaxPriorityFees, setBlockMaxPriorityFees] = useState({});
-  const [BlocktotalTrxs, setBlockTotalTrxs] = useState(0);
-
   const [Loading, setLoading] = useState(0);
-  const [TrxsData, setTrxsData] = useState([]);
+  const [BlockTrxsData, setBlockTrxsData] = useState([]);
+  const [BlockLogsData, setBlockLogsData] = useState([]);
 
-  const fromWei = i => {
-    return i / 10 ** 18;
-  };
-  const fromGWei = i => {
-    return i / 10 ** 9;
-  };
-  const toGWei = i => {
-    return i * 10 ** 9;
-  };
+  const fbAPI = "https://blocks.flashbots.net/v1/blocks";
 
-  // sort array ascending
-  const asc = arr => arr.sort((a, b) => a - b);
+  const getBlocks = async (params) => {
+    params.limit = '2';
+    const fburl = `${fbAPI}/?${new URLSearchParams(params)}`;
 
-  const sum = arr => arr.reduce((a, b) => a + b, 0);
+    const config = {
+      timeout: 30000,
+      url: fburl,
+      method: 'get',
+      responseType: 'json'
+    };
+    const res = await axios(config);
+    const { blocks } = res.data;
+    const tblocks = blocks.map(block => transformBundle(block));
+    
+    const fb = blocks[blocks.length-1].block_number;
+    const tb = blocks[0].block_number;
+    const logs = await getLogs(fb, tb);
+    const flogs = filterLogs(tblocks, logs);
 
-  const mean = arr => sum(arr) / arr.length;
+    const lblocks = tblocks.map(block => transformLogs(block, flogs));
 
-  // sample standard deviation
-  const std = (arr) => {
-      const mu = mean(arr);
-      const diffArr = arr.map(a => (a - mu) ** 2);
-      return Math.sqrt(sum(diffArr) / (arr.length - 1));
-  };
+    setBlockTrxsData(lblocks);
+  }
 
-  const ethgasAPI = "https://ethgasstation.info/json/ethgasAPI.json";
-  const uniswapV2GQL = "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2";
-  const ethQL = `{
-    bundles (first:1) {
-      ethPrice
+  const getSubBundles = (bundle) => {
+    return bundle.transactions.reduce((acc, curr) => {
+      if (acc[curr.bundle_index]) {
+        acc[curr.bundle_index].push(curr);
+      } else {
+        acc[curr.bundle_index] = [curr];
+      }
+      return acc;
+    }, []);
+  }
+
+  const getBundleHashes = (bundle) => {
+    const h = [];
+    bundle.transactions.forEach(tb => {
+      tb.forEach(t => {
+        h.push(t.transaction_hash);
+      })
+    })
+    return h;
+  }
+
+  const transformBundle = (bundle) => {
+    bundle.transactions = getSubBundles(bundle);
+    bundle.hashes = getBundleHashes(bundle);
+    return bundle;
+  }
+
+  const getLogs = async (fb, tb) => {
+    const filter = {
+      fromBlock:ethers.utils.hexValue(parseInt(fb)),
+      toBlock:ethers.utils.hexValue(parseInt(tb))
+    };
+    try {
+      const res = await mainnetProvider.getLogs(filter);
+      return res;
+    } catch(e) {
+      console.log(e);
     }
-  }`;
 
-  const getEthPrice = () => {
-    axios
-      .post(uniswapV2GQL, { query: ethQL })
-      .then(response => {
-        const { data } = response;
-        const {
-          data: { bundles },
-        } = data;
-        if (bundles.length > 0) {
-          const ep = parseFloat(bundles[0].ethPrice).toFixed(6);
-          setEthPrice(ep);
-          calcUsd();
+    return [];
+  }
+
+  const filterLogs = (blocks, logs) => {
+    const flogs = [];
+    const hashArr = [];
+    blocks.forEach(b => {
+      b.hashes.forEach(h => hashArr.push(h));
+    })
+    logs.forEach(l => {
+      if(hashArr.includes(l.transactionHash)){
+        flogs.push(l);
+      }
+    })
+    return flogs;
+  }
+
+
+  const transformLogs = (bundle, logs) => {
+    bundle.transactions.forEach(b => {
+      b.forEach(async t => {
+        const larr = [];
+        logs.forEach(l => {
+          if(t.transaction_hash == l.transactionHash){
+            larr.push(l)
+          }
+        })
+        t.logs = await getAllLogs(larr);
+      })
+    });
+    return bundle;
+  }
+
+  const getAllLogs = async (logs) => {
+    const dlogs =  await Promise.all(decodeLogs(logs));
+    dlogs.map(async log => {
+      const { coin, logo, decimals } = await getToken(log.address);
+      let value;
+      log.events.map(e => {
+        if (e.type.match("uint") && e.value > 0) {
+          value = parseFloat(e.value / 10 ** decimals).toFixed(6);
         }
-      })
-      .catch(error => console.log(error));
-  };
-
-  const gasConverter = g => {
-    const gm = g * 100000000;
-    const gd = parseInt(gm, 10) / 10 ** 9;
-    return gd;
-  };
-
-  const getGasPrices = () => {
-    axios
-      .get(ethgasAPI)
-      .then(response => {
-        const { data } = response;
-        const { average, fast, fastest } = data;
-        const gasObj = {
-          average: gasConverter(average),
-          fast: gasConverter(fast),
-          fastest: gasConverter(fastest),
-        };
-        setGasPrices(gasObj);
-        setGas(gasObj.fast);
-        calcUsd();
-      })
-      .catch(error => console.log(error));
-  };
-
-  const onChangeGas = e => {
-    const g = e.target.value;
-    // console.log("radio checked --", g);
-    setGas(g);
-    calcUsd();
-  };
-
-  
-  const onChangeGasLimit = e => {
-    const g = e.target.value;
-    // console.log('value --', g);
-    setGasLimit(g);
-    calcUsd();
-  };
-
-  const calcUsd = () => {
-    if (ethPrice < 0 || gas < 0) return;
-    const fg = toGWei(gas);
-    const gm = fromWei(fg * gasLimit);
-    const u = parseFloat(gm * ethPrice).toFixed(6);
-    if (gm > 0) setGasEth(gm);
-    if (u > 0) setGasUsd(u);
-  };
+        // if(log.name == "Swap") console.log(e);
+      });
+      log.coin = {
+        address: log.address,
+        name: coin,
+        event: log.name.toLowerCase(),
+        logo,
+        decimals,
+        value
+      };
+      return log;
+    });
+    return dlogs;
+  }
 
   const init = () => {
-    getEthPrice();
-    getGasPrices();
+    if(BlockTrxsData.length == 0) {
+      getBlocks({})
+    }
+    // console.log('BlockTrxsData --',BlockTrxsData);
   };
 
   useOnBlock(mainnetProvider, async () => {
     await setLoading(0);
     // console.log(mainnetProvider)
     const bn = await mainnetProvider._lastBlockNumber;
-    const blockWithTrxs = await mainnetProvider.getBlockWithTransactions( bn );
-    let bf = blockWithTrxs.baseFeePerGas.toString();
-    const gu = blockWithTrxs.gasUsed.toString();
-    const gl = blockWithTrxs.gasLimit.toString();
-
-    try{
-      bf = parseFloat(toGWei(fromWei(bf))).toFixed(6);
-    } catch (e) {
-      // console.log(e);
-    }
-    // let bfe = fromWei(bf * gl);
-    // bfe = parseFloat(bf * ethPrice).toFixed(6);
-    
     setBlockNum(bn);
-    setBlockBaseGas(bf);
-    // setBlockBaseGasEth(bfe);
-    setBlockGasUsed(gu);
-    setBlockGasLimit(gl);
-    setBlockTotalTrxs(blockWithTrxs.transactions.length);
 
-    const trxs = [];
-    let trxsEGP = [];
-    let trxsEMF = [];
-    let trxsEMPF = [];
-    blockWithTrxs.transactions.map(t => {
-      if(t.type == "0x2") {
-        // console.log(t)
-
-        const th = t.hash.toString();
-        let tg = t.gas.toString();
-        let tgl = t.gasLimit.toString();
-        let tgp = t.gasPrice.toString();
-        let tmf = t.maxFeePerGas.toString();
-        let tmpf = t.maxPriorityFeePerGas.toString();
-        
-        try {
-          tg = ethers.BigNumber.from(tg).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-        try {
-          tgl = ethers.BigNumber.from(tgl).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-        try {
-          tgp = ethers.BigNumber.from(tgp).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-        try {
-          tmf = ethers.BigNumber.from(tmf).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-        try {
-          tmpf = ethers.BigNumber.from(tmpf).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-
-        trxs.push({
-          hash:th,
-          gas:tg,
-          gasLimit:tgl,
-          gasPrice:toGWei(fromWei(tgp)),
-          maxFeePerGas:toGWei(fromWei(tmf)),
-          maxPriorityFeePerGas:toGWei(fromWei(tmpf)),
-        })
-          
-      } else {
-        const th = t.hash.toString();
-        let tg = t.gas.toString();
-        let tgl = t.gasLimit.toString();
-        let tgp = t.gasPrice.toString();
-
-        try {
-          tg = ethers.BigNumber.from(tg).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-        try {
-          tgl = ethers.BigNumber.from(tgl).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-        try {
-          tgp = ethers.BigNumber.from(tgp).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-
-        trxs.push({
-          hash:th,
-          gas:tg,
-          gasLimit:tgl,
-          gasPrice:toGWei(fromWei(tgp)),
-          maxFeePerGas:0,
-          maxPriorityFeePerGas:0,
-        })
-      }
-    })
-
-    trxsEGP = trxs.filter(i => {
-      if(i.gasPrice > 0) return i.gasPrice
-    }).sort((a, b) => a.gasPrice - b.gasPrice);
-    trxsEMF = trxs.filter(i => {
-      if(i.maxFeePerGas > 0) return i.maxFeePerGas
-    }).sort((a, b) => a.maxFeePerGas - b.maxFeePerGas);
-    trxsEMPF = trxs.filter(i => {
-      if(i.maxPriorityFeePerGas > 0) return i.maxPriorityFeePerGas
-    }).sort((a, b) => a.maxPriorityFeePerGas - b.maxPriorityFeePerGas);
-
-    // let gpmin = Math.round(Math.min.apply(null, trxsEGP.map(i => i.gasPrice)));
-    // let gpmax = Math.round(Math.max.apply(null, trxsEGP.map(i => i.gasPrice)));
-    // let gpavg = Math.round(trxsEGP.reduce((t, n) => t + n.gasPrice, 0) / trxsEGP.length);
-
-    // let mfmin = Math.round(Math.min.apply(null, trxsEMF.map(i => i.maxFeePerGas)));
-    // let mfmax = Math.round(Math.max.apply(null, trxsEMF.map(i => i.maxFeePerGas)));
-    // let mfavg = Math.round(trxsEMF.reduce((t, n) => t + n.maxFeePerGas, 0) / trxsEMF.length);
-
-    // let mpfmin = Math.round(Math.min.apply(null, trxsEMPF.map(i => i.maxPriorityFeePerGas)));
-    // let mpfmax = Math.round(Math.max.apply(null, trxsEMPF.map(i => i.maxPriorityFeePerGas)));
-    // let mpfavg = Math.round(trxsEMPF.reduce((t, n) => t + n.maxPriorityFeePerGas, 0) / trxsEMPF.length);
-
-    let gpmax = Math.round(quantile(trxsEGP.map(i => i.gasPrice), .75));
-    let gpavg = Math.round(quantile(trxsEGP.map(i => i.gasPrice), .50));
-
-    let mfmax = Math.round(quantile(trxsEMF.map(i => i.maxFeePerGas), .75));
-    let mfavg = Math.round(quantile(trxsEMF.map(i => i.maxFeePerGas), .50));
-
-    let mpfmax = Math.round(quantile(trxsEMPF.map(i => i.maxPriorityFeePerGas), .75));
-    let mpfavg = Math.round(quantile(trxsEMPF.map(i => i.maxPriorityFeePerGas), .50));
-
-    const gpObj = {
-      average: gpavg,
-      fast: gpmax,
-      fastest: gpmax,
-    };
-    const mfObj = {
-      average: mfavg,
-      fast: mfmax,
-      fastest: mfmax,
-    };
-    const mpfObj = {
-      average: mpfavg,
-      fast: mpfmax,
-      fastest: mpfmax,
-    };
-
-    setTrxsData(trxs);
-    
-    setBlockGasPrices(gpObj);
-    setBlockMaxFees(mfObj);
-    setBlockMaxPriorityFees(mpfObj);
-
-    console.log(`⛓ mainnet block : ${bn}`);
+    // console.log(`⛓ mainnet block : ${bn}`);
     // console.log('⛓ trxsEMF',trxsEMF);
 
     init();
@@ -311,43 +289,135 @@ function App(props) {
   });
   // usePoller(init, 10000);
 
-  const quantile = (arr, q) => {
-      const sorted = asc(arr);
-      const pos = (sorted.length - 1) * q;
-      const base = Math.floor(pos);
-      const rest = pos - base;
-      if (sorted[base + 1] !== undefined) {
-          return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
-      } else {
-          return sorted[base];
-      }
-  };
-
   const cols = [
     {
       title: "details",
-      dataIndex: "hash",
-      key: "hash",
+      dataIndex: "block_number",
+      key: "block_number",
       width: "80%",
       render: (text, record, index) => {
         // console.log(record);
 
-        let gas = record.gas;
-        let gasLimit = record.gasLimit;
-        let gasPrice = record.gasPrice;
-        let maxFeePerGas = record.maxFeePerGas || 0;
-        let maxPriorityFeePerGas = record.maxPriorityFeePerGas || 0;
+        const block_number = record.block_number;
+        const miner_reward = parseFloat(fromWei(record.miner_reward)).toFixed(6);
+        const gas_used = record.gas_used;
+        const gas_price = parseFloat(fromGWei(record.gas_price)).toFixed(6);
+        const bundles = record.transactions;
         return (
           <>
-            gas: {gas} 
-            <br />
-            gas limit: {gasLimit}
-            <br />
-            gas price: {gasPrice}
-            <br />
-            max fee: {maxFeePerGas}
-            <br />
-            max priority fee: {maxPriorityFeePerGas}
+            <Card size="small" title={<b>block num: {block_number} | total bundles: {bundles.length}</b>} extra={<></>} style={{ }}>
+              <Card.Grid style={{width:"35%",padding:"5px 12px",backgroundColor:"##a2baec"}} hoverable={false} >miner reward (eth): {miner_reward}</Card.Grid>
+              <Card.Grid style={{width:"30%",padding:"5px 12px",backgroundColor:"##a2baec"}} hoverable={false} >gas used: {gas_used}</Card.Grid>
+              <Card.Grid style={{width:"35%",padding:"5px 12px",backgroundColor:"##a2baec"}} hoverable={false} >gas price (gwei): {gas_price}</Card.Grid>
+              {
+                bundles.length > 0 && 
+                bundles.map( (b,i) => {
+                  
+                  return (
+                    <>
+                      <Card.Grid style={{width:"100%",padding:5}} hoverable={false} >
+                        <Card size="small" title={<b>bundle num: {i} | total trxs: {b.length}</b>} extra={<> </>} style={{ }} headStyle={{backgroundColor:"##a2baec"}}>
+                        {
+                          b &&
+                          b.length > 0 &&
+                          b.map( (t, ii) => {
+                            // console.log(t)
+                            const trxhash = t.transaction_hash;
+                            const trxhashLink = txLink(trxhash);
+                            const trxhashTxt = shortTxt(trxhash);
+
+                            const fadd = t.eoa_address;
+                            const faddLink = addressLink(fadd);
+                            const faddTxt = shortTxt(fadd);
+
+                            const tadd = t.to_address;
+                            const taddLink = addressLink(tadd);
+                            const taddTxt = shortTxt(tadd);
+
+                            const miner_reward = parseFloat(fromWei(t.total_miner_reward)).toFixed(6);
+                            const gas_used = t.gas_used;
+                            const gas_price = parseFloat(fromGWei(t.gas_price)).toFixed(6);
+                            return (
+                              <>  
+                                <Card.Grid style={{width:"35%",padding:"5px 12px",backgroundColor:"#c4ddef"}} hoverable={false} >
+                                
+                                  #{ii} trx num: <br/>
+                                  <a href={trxhashLink} target="_blank">
+                                    {trxhashTxt}
+                                  </a>
+                                </Card.Grid>
+                                <Card.Grid style={{width:"30%",padding:"5px 12px",backgroundColor:"#c4ddef"}} hoverable={false} >
+                                
+                                  from add: <br/>
+                                  <a href={taddLink} target="_blank">
+                                    {faddTxt}
+                                  </a>
+                                </Card.Grid>
+                                <Card.Grid style={{width:"35%",padding:"5px 12px",backgroundColor:"#c4ddef"}} hoverable={false} >
+                                
+                                  to add: <br/>
+                                  <a href={taddLink} target="_blank">
+                                    {taddTxt}
+                                  </a>
+                                </Card.Grid>
+                                <Card.Grid style={{width:"35%",padding:"5px 12px",backgroundColor:"#c4ddef"}} hoverable={false} >miner reward (eth): {miner_reward}</Card.Grid>
+                                <Card.Grid style={{width:"30%",padding:"5px 12px",backgroundColor:"#c4ddef"}} hoverable={false} >gas used: {gas_used}</Card.Grid>
+                                <Card.Grid style={{width:"35%",padding:"5px 12px",backgroundColor:"#c4ddef"}} hoverable={false} >gas price (gwei): {gas_price}</Card.Grid>
+              
+                                {
+                                  t.logs &&
+                                  t.logs.length > 0 &&
+                                  t.logs.map( l => {
+                                    // console.log(l)
+                                    const coinadd = addressLink(l.coin.address);
+                                    const cointxt = shortTxt(l.coin.address);
+                                    return(
+                                      <>
+                                        <Card.Grid style={{width:"100%",padding:5}} hoverable={false} >
+                                          
+                                          {l.coin.event}&nbsp; 
+                                          {
+                                            l.coin.logo
+                                              ? <>
+                                                  <Space>
+                                                    <a href={coinadd} target="_blank">
+                                                      <img 
+                                                      src={l.coin.logo} 
+                                                      style={{ 
+                                                        width:"1rem",
+                                                        marginRight: ".25rem"
+                                                      }}
+                                                      />
+                                                      {l.coin.name} 
+                                                    </a> 
+                                                    {l.coin.value}
+                                                  </Space>
+                                                </>
+                                              : <>
+                                                  <Space>
+                                                    <a href={coinadd} target="_blank">
+                                                      {cointxt} 
+                                                    </a>
+                                                    {l.coin.value}
+                                                  </Space>
+                                                </>
+                                          }
+                                        </Card.Grid>
+                                      </>
+                                    )
+                                  })
+                                }
+                              </>
+                            )
+                          })
+                        }
+                      </Card>
+                      </Card.Grid>
+                    </>
+                  );
+                })
+              }
+            </Card>
           </>
         );
       },
@@ -366,7 +436,7 @@ function App(props) {
         <Content style={{ paddingTop: 150, paddingBottom: 50, width: "100%" }} className="">
           <div
             style={{
-              width: 800,
+              width: 900,
               margin: "auto",
               marginTop: 10,
               paddingTop: 15,
@@ -377,135 +447,19 @@ function App(props) {
             class="grad_deeprelief"
           >
             <h3> ⚓ latest block num: {blockNum}</h3>
-            <h3> ⚓ total trxs: {BlocktotalTrxs}</h3>
-            <h3> ⚓ base fee: {BlockBaseGas} gwei</h3>
-            {/*<h3> ⚓ base fee cost (eth): {BlockBaseGasEth}</h3>*/}
-            <h3> ⚓ gas used: {BlockGasUsed}</h3>
-            <h3> ⚓ gas limit: {BlockGasLimit}</h3>
             <Divider />
-            <h3> ⛽️ select gas price speed (based on block num: {blockNum}):</h3>
-            <Radio.Group onChange={onChangeGas} value={gas} buttonStyle="solid">
-              <Radio.Button
-                value={BlockGasPrices && BlockGasPrices.average}
-                style={{
-                  margin: 5,
-                  padding: "15px 5px",
-                  backgroundColor: "#2FB999",
-                  borderRadius: 4,
-                  width: "210px",
-                  height: "100%",
-                }}
-              >
-                <div style={{ fontSize: 15 }}>average</div>
-                <div style={{ fontSize: 16,lineHeight:"20px" }}>gas:{BlockGasPrices && BlockGasPrices.average}</div>
-                <div style={{ fontSize: 16,lineHeight:"20px" }}>max fee:{BlockMaxFees && BlockMaxFees.average}</div>
-                <div style={{ fontSize: 16,lineHeight:"20px" }}>max priority fee:{BlockMaxPriorityFees && BlockMaxPriorityFees.average}</div>
-              </Radio.Button>
-              <Radio.Button
-                value={BlockGasPrices && BlockGasPrices.fast}
-                style={{
-                  margin: 5,
-                  padding: "15px 5px",
-                  backgroundColor: "#0237CC",
-                  borderRadius: 4,
-                  width: "210px",
-                  height: "100%",
-                }}
-              >
-                <div style={{ fontSize: 15 }}>fast</div>
-                <div style={{ fontSize: 16,lineHeight:"20px" }}>gas:{BlockGasPrices && BlockGasPrices.fast}</div>
-                <div style={{ fontSize: 16,lineHeight:"20px" }}>max fee:{BlockMaxFees && BlockMaxFees.fast}</div>
-                <div style={{ fontSize: 16,lineHeight:"20px" }}>max priority fee:{BlockMaxPriorityFees && BlockMaxPriorityFees.fast}</div>
-              </Radio.Button>
-              <Radio.Button
-                value={BlockGasPrices && BlockGasPrices.fastest}
-                style={{
-                  margin: 5,
-                  padding: "15px 5px",
-                  backgroundColor: "#FF558F",
-                  borderRadius: 4,
-                  width: "210px",
-                  height: "100%",
-                }}
-              >
-                <div style={{ fontSize: 15 }}>fastest</div>
-                <div style={{ fontSize: 16,lineHeight:"20px" }}>gas:{BlockGasPrices && BlockGasPrices.fastest}</div>
-                <div style={{ fontSize: 16,lineHeight:"20px" }}>max fee:{BlockMaxFees && BlockMaxFees.fastest}</div>
-                <div style={{ fontSize: 16,lineHeight:"20px" }}>max priority fee:{BlockMaxPriorityFees && BlockMaxPriorityFees.fastest}</div>
-              </Radio.Button>
-            </Radio.Group>
-            <Divider />
-            <h3> ⛽️ select gas price speed (eth gas station):</h3>
-            <Radio.Group onChange={onChangeGas} value={gas} buttonStyle="solid">
-              <Radio.Button
-                value={gasPrices && gasPrices.average}
-                style={{
-                  margin: 10,
-                  padding: 15,
-                  backgroundColor: "#2FB999",
-                  borderRadius: 4,
-                  width: "100px",
-                  height: "100px",
-                }}
-              >
-                <div style={{ fontSize: 15 }}>average</div>
-                <div style={{ fontSize: 20 }}>{gasPrices && gasPrices.average}</div>
-              </Radio.Button>
-              <Radio.Button
-                value={gasPrices && gasPrices.fast}
-                style={{
-                  margin: 10,
-                  padding: 15,
-                  backgroundColor: "#0237CC",
-                  borderRadius: 4,
-                  width: "100px",
-                  height: "100px",
-                }}
-              >
-                <div style={{ fontSize: 15 }}>fast</div>
-                <div style={{ fontSize: 20 }}>{gasPrices && gasPrices.fast}</div>
-              </Radio.Button>
-              <Radio.Button
-                value={gasPrices && gasPrices.fastest}
-                style={{
-                  margin: 10,
-                  padding: 15,
-                  backgroundColor: "#FF558F",
-                  borderRadius: 4,
-                  width: "100px",
-                  height: "100px",
-                }}
-              >
-                <div style={{ fontSize: 15 }}>fastest</div>
-                <div style={{ fontSize: 20 }}>{gasPrices && gasPrices.fastest}</div>
-              </Radio.Button>
-            </Radio.Group>
-            <h3>enter gas limit:</h3>
-            <Input
-              placeholder="input gas limit"
-              allowClear
-              defaultValue={gasLimit}
-              onChange={onChangeGasLimit}
-              style={{ width: "50%" }}
-            />
-            <Divider />
-            <h3> 💲 current eth price: {ethPrice}</h3>
-            <h3> ⛽️ selected gas : {gas} gwei</h3>
-            <h3> ♦ gas cost (eth) : {gasEth}</h3>
-            <h3> 💲 gas cost (usd) : {gasUsd}</h3>
-            <Divider />
-            {/*<Table
+            <Table
               showHeader={false}
               columns={cols}
               rowKey="id"
               size="small"
-              dataSource={TrxsData}
+              dataSource={BlockTrxsData}
               loading={Loading == 1 ? false : true}
               pagination={{ defaultPageSize: 50 }}
               style={{
                 padding: 10,
               }}
-            />*/}
+            />
           </div>
 
           <div
@@ -520,42 +474,9 @@ function App(props) {
             class="grad_deeprelief"
           >
             <div> ****** </div>
-            <div> PRIOR TO THE LONDON UPGRADE: </div>
-            <div style={{ textAlign: "left" }}>
-              Total fee would have been: Gas units (limit) * Gas price per unit i.e 21,000 * 200 = 4,200,000 gwei or 0.0042 ETH
+            <div style={{ textAlign: "left" }}>    
             </div>
             <Divider/>
-            <div> AFTER THE LONDON UPGRADE: </div>
-            <div style={{ textAlign: "left" }}>
-              Calculating the total transaction fee works as follows: Gas units (limit) * (Base fee + Tip)
-              Using the formula above we can calculate this as 21,000 * (100 + 10) = 2,310,000 gwei or 0.0023 ETH.
-            </div>
-            <Divider/>
-            <div style={{ textAlign: "left" }}>
-              <span style={{ backgroundColor: "#98b5de", padding:2 }}>Base Fee</span>: The base fee is calculated by a formula that compares the size of the previous block (the amount of gas used for all the transactions) with the target size. 
-            </div>
-            <div style={{ textAlign: "left" }}>
-              <span style={{ backgroundColor: "#98b5de", padding:2 }}>Priority Fee (Tips)</span>: With the new base fee getting burned, the London Upgrade introduced a priority fee (tip) to incentivize miners to include a transaction in the block.
-              </div>
-            <div style={{ textAlign: "left" }}>
-              <span style={{ backgroundColor: "#98b5de", padding:2 }}>Max Fee</span>: To execute a transaction on the network users are able to specify a maximum limit they are willing to pay for their transaction to be executed. difference between the max fee and the actual fee is refunded, i.e. refund = max fee - (base fee + priority fee)
-            </div>
-            <div style={{ textAlign: "left" }}>
-              <span style={{ backgroundColor: "#98b5de", padding:2 }}>Gas</span>: Gas refers to the unit that measures the amount of computational effort required to execute specific
-              operations on the Ethereum network.
-            </div>
-            <div style={{ textAlign: "left" }}>
-              <span style={{ backgroundColor: "#98b5de", padding:2 }}>Gas Limit</span>: Gas limit refers to the maximum amount of gas you are willing to consume on a transaction. A standard ETH transfer requires a gas limit of 21,000 units of gas.
-            </div>
-            <div style={{ textAlign: "left" }}>
-              <span style={{ backgroundColor: "#98b5de", padding:2 }}>Gas Price</span>: Gas price refers to the amount of ether you are willing to pay for every unit of gas, and this is usually measured in 'gwei'.
-            </div>
-            <div style={{ textAlign: "left" }}>
-              reference:{" "}
-              <a href="https://ethereum.org/en/developers/docs/gas/" target="_blank" rel="noopener noreferrer">
-                https://ethereum.org/en/developers/docs/gas/
-              </a>
-            </div>
           </div>
         </Content>
         <Footer
