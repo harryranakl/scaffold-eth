@@ -1,4 +1,4 @@
-# Welcome to Scaffold-eth - eip gas prices calculator
+# Welcome to Scaffold-eth - flashbots explorer
 Scaffold-eth is everything you need to get started building decentralized applications on Ethereum! 🚀
 
 # About Scaffold-eth
@@ -21,7 +21,7 @@ Scaffold-eth is not a product itself but more of a combination or stack of other
 ```bash
 git clone https://github.com/austintgriffith/scaffold-eth.git
 cd scaffold-eth
-git checkout -b gas-calculator
+git checkout -b flashbots-arb-bundles
 yarn install
 yarn start
 ```
@@ -43,8 +43,8 @@ yarn deploy
 If everything goes smoothly you should now have a local network running, with the starter contracts deployed and the frontend React app running on https://localhost:3000.
 
 # Preview 
-🎛 http://eth-gas-burn-calc.surge.sh/
-![preview](https://user-images.githubusercontent.com/35558569/129438957-0fd500fe-db60-436e-a457-c7a5c2df7d24.png)
+🎛 http://______.surge.sh/ (not uploaded)
+![preview]()
 
 
 # Documentation

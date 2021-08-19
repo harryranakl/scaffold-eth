@@ -331,7 +331,7 @@ function App(props) {
       title: "details",
       dataIndex: "block_number",
       key: "block_number",
-      width: "80%",
+      width: "100%",
       render: (text, record, index) => {
         // console.log(record);
 
@@ -524,10 +524,10 @@ function App(props) {
           <HeaderSt />
           <Space></Space>
         </Header>
-        <Content style={{ paddingTop: 150, paddingBottom: 50, width: "100%" }} className="">
+        <Content style={{ paddingTop: 100, paddingBottom: 50, width: "100%" }} className="">
           <div
             style={{
-              width: 900,
+              width: "90%",
               margin: "auto",
               marginTop: 10,
               paddingTop: 15,
@@ -570,7 +570,7 @@ function App(props) {
 
           <div
             style={{
-              width: 800,
+              width: "90%",
               margin: "auto",
               marginTop: 10,
               padding: 10,
@@ -604,7 +604,7 @@ function App(props) {
                 <a
                   target="_blank"
                   style={{ color: "#000" }}
-                  href="https://github.com/austintgriffith/scaffold-eth/tree/gas-calculator"
+                  href="https://github.com/harryranakl/scaffold-eth/tree/flashbots-arb-bundles"
                 >
                   🍴 Repo: Fork me!
                 </a>
