@@ -1,4 +1,4 @@
-import { Row, Col, Layout, Space, Divider, Radio, Input, Table, Card, Tag } from "antd";
+import { Row, Col, Layout, Space, Divider, Radio, Input, Button, Table, Card, Tag } from "antd";
 import "antd/dist/antd.css";
 import "./App.css";
 import React, { useState } from "react";
@@ -176,16 +176,20 @@ function App(props) {
     };
     const res = await axios(config);
     const { blocks } = res.data;
-    const tblocks = blocks.map(block => transformBundle(block));
 
-    const fb = blocks[blocks.length - 1].block_number;
-    const tb = blocks[0].block_number;
-    const logs = await getLogs(fb, tb);
-    const flogs = filterLogs(tblocks, logs);
+    if(blocks.length){
+      const tblocks = blocks.map(block => transformBundle(block));
 
-    const lblocks = tblocks.map(block => transformLogs(block, flogs));
+      const fb = blocks[blocks.length - 1].block_number;
+      const tb = blocks[0].block_number;
+      const logs = await getLogs(fb, tb);
+      const flogs = filterLogs(tblocks, logs);
 
-    setBlockTrxsData(lblocks);
+      const lblocks = tblocks.map(block => transformLogs(block, flogs));
+
+      setBlockTrxsData(lblocks);
+    }
+    
   };
 
   const getSubBundles = bundle => {
@@ -283,15 +287,34 @@ function App(props) {
     return dlogs;
   };
 
-  const init = () => {
-    if (BlockTrxsData.length == 0) {
-      getBlocks({});
+  const onChangeBlockNum = async e => {
+    const bn = e.target.value;
+    // console.log('value --', bn);
+
+    if(parseInt(bn).toString().length >= 8 || bn == ""){
+      await setLoading(0);
+      await bn ? getBlocks({block_number:bn}): getBlocks({});
+      await setLoading(1);
+    }
+  };
+
+  const refresh = async e => {
+    await setLoading(0);
+    await getBlocks({});
+    await setLoading(1);
+  };
+
+  const init = async (bn) => {
+    
+    if (BlockTrxsData.length == 0 ) {
+      await setLoading(0);
+      await getBlocks({});
+      await setLoading(1);
     }
     // console.log('BlockTrxsData --',BlockTrxsData);
   };
 
   useOnBlock(mainnetProvider, async () => {
-    await setLoading(0);
     // console.log(mainnetProvider)
     const bn = await mainnetProvider._lastBlockNumber;
     setBlockNum(bn);
@@ -300,7 +323,6 @@ function App(props) {
     // console.log('⛓ trxsEMF',trxsEMF);
 
     init();
-    await setLoading(1);
   });
   // usePoller(init, 10000);
 
@@ -516,6 +538,21 @@ function App(props) {
             class="grad_deeprelief"
           >
             <h3> ⚓ latest block num: {blockNum}</h3>
+            <Input
+              placeholder="search: block num"
+              allowClear
+              // defaultValue={}
+              onChange={onChangeBlockNum}
+              style={{ width: "50%" }}
+            />
+            <Button
+              type={"primary"}
+              onClick={() => {
+                refresh();
+              }}
+            >
+              refresh
+            </Button>
             <Divider />
             <Table
               showHeader={false}
