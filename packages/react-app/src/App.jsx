@@ -346,7 +346,7 @@ function App(props) {
                 <a
                   target="_blank"
                   style={{ color: "#000" }}
-                  href="https://github.com/austintgriffith/scaffold-eth/tree/wild-west-metaverse-decode-messages"
+                  href="https://github.com/harryranakl/scaffold-eth/tree/wild-west-metaverse-decode-messages"
                 >
                   🍴 Repo: Fork me!
                 </a>
