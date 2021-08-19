@@ -1,5 +1,5 @@
 // App.jsx
-import { Row, Col, Layout, Space, Divider, Button, Input, Table, Typography, Image } from "antd";
+import { Row, Col, Layout, Space, Divider, Button, Input, Table, Typography, Image, Tag } from "antd";
 import React, { useCallback, useEffect, useState } from "react";
 import "antd/dist/antd.css";
 import "./App.css";
@@ -8,6 +8,7 @@ import { INFURA_ID, ETHERSCAN_KEY, NETWORK, NETWORKS } from "./constants";
 import { useLocalStorage, usePoller } from "./hooks";
 
 const { ethers } = require("ethers");
+const axios = require("axios");
 const { Header, Footer, Content } = Layout;
 const { Paragraph, Text } = Typography;
 const { TextArea } = Input;
@@ -27,6 +28,36 @@ if (DEBUG) console.log("📡 Connecting to Mainnet Ethereum");
 // const mainnetInfura = navigator.onLine ? new ethers.providers.StaticJsonRpcProvider("https://mainnet.infura.io/v3/" + INFURA_ID) : null;
 const etherscanProvider = navigator.onLine ? new ethers.providers.EtherscanProvider("homestead", ETHERSCAN_KEY) : null;
 
+let addArr = [];
+const readAddlist = async () => {
+  const config = {
+    timeout: 30000,
+    url: "https://gist.githubusercontent.com/harryranakl/274da31b5d458a2821ddfe7881397620/raw",
+    method: "get",
+    responseType: "json",
+  };
+
+  const {
+    data: { data },
+  } = await axios(config);
+  if (data) addArr = data;
+};
+readAddlist();
+
+const txLink = (_tx, r) => `https://etherscan.io/tx/${r ? _tx.substr(0, _tx.length - 2) : _tx}`;
+const addressLink = _a => `https://etherscan.io/address/${_a}`;
+const shortTxt = _t => `${_t.substr(0, 50)}..`;
+
+const fromWei = i => {
+  return i / 10 ** 18;
+};
+const fromGWei = i => {
+  return i / 10 ** 9;
+};
+const toGWei = i => {
+  return i * 10 ** 9;
+};
+
 function App(props) {
   const mainnetProvider = etherscanProvider;
 
@@ -41,15 +72,6 @@ function App(props) {
   const [Loading, setLoading] = useState(0);
   const [Anim, setAnim] = useState("blink_eff");
 
-  const fromWei = i => {
-    return i / 10 ** 18;
-  };
-  const fromGWei = i => {
-    return i / 10 ** 9;
-  };
-  const toGWei = i => {
-    return i * 10 ** 9;
-  };
   const onChangeAddress = async e => {
     let a = e.target.value;
     // console.log('value --', a);
@@ -99,10 +121,6 @@ function App(props) {
   setTimeout(() => {
     setAnim("hide_eff");
   }, 3500);
-
-  const txLink = (_tx, r) => `https://etherscan.io/tx/${r ? _tx.substr(0, _tx.length - 2) : _tx}`;
-  const addressLink = _a => `https://etherscan.io/address/${_a}`;
-  const shortTxt = _t => `${_t.substr(0, 50)}..`;
 
   const cols = [
     {
@@ -184,7 +202,11 @@ function App(props) {
                 </span>
               )}
             </Text>
-            <TextArea autoSize value={data} style={self ? {padding: "4px", background: "#9cb8e0", border: "1px solid",} : { padding: "4px" }} />
+            <TextArea
+              autoSize
+              value={data}
+              style={self ? { padding: "4px", background: "#9cb8e0", border: "1px solid" } : { padding: "4px" }}
+            />
             <Text style={{ overflowWrap: "anywhere", fontSize: 12 }}>
               value: {val} eth
               <br />
@@ -240,6 +262,22 @@ function App(props) {
               //   padding: 10,
               // }}
             />
+            { addArr &&
+              addArr.length > 0 &&
+              addArr.map(a => {
+                return (
+                  <>
+                    <Space style={{ textAlign: "center", fontSize: 12 }}>
+                      {a.add}
+                      <Tag>
+                        <a href={a.link} target="_blank">
+                          {a.tag} {a.dat}
+                        </a>
+                      </Tag>
+                    </Space>
+                  </>
+                );
+              })}
           </div>
 
           <div
