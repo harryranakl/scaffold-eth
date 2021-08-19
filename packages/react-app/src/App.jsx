@@ -343,13 +343,13 @@ function App(props) {
                   🍴 Repo: Fork me!
                 </a>
                 <br />*/}
-                {/*<a
+                <a
                   target="_blank"
                   style={{ color: "#000" }}
                   href="https://github.com/austintgriffith/scaffold-eth/tree/wild-west-metaverse-decode-messages"
                 >
                   🍴 Repo: Fork me!
-                </a>*/}
+                </a>
               </div>
             </Col>
           </Row>
