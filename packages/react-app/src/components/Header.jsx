@@ -6,7 +6,7 @@ import React from "react";
 export default function Header() {
   return (
     <a href="/" target="_blank" rel="noopener noreferrer">
-      <PageHeader title="🏗 scaffold-eth" subTitle="flashbots explorer" style={{ cursor: "pointer" }} />
+      <PageHeader title="🏗 🤖 scaffold-eth" subTitle="flashbots explorer" style={{ cursor: "pointer" }} />
     </a>
   );
 }
