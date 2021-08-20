@@ -17,7 +17,7 @@ const { Header, Footer, Content } = Layout;
 const eventsJson = [
   //erc20
   { text_signature: "event Transfer(address indexed from, address indexed to, uint256 value)" },
-  { text_signature: "event Approval(address indexed owner, address indexed spender, uint256 value)" },
+  // { text_signature: "event Approval(address indexed owner, address indexed spender, uint256 value)" },
   //WETH
   { text_signature: "event Deposit(address indexed dst, uint wad)" },
   { text_signature: "event Withdrawal(address indexed src, uint wad)" },
@@ -44,7 +44,7 @@ const eventsJson = [
     text_signature:
       "event Swap(address indexed sender, uint amount0, uint amount1, uint amount0Out, uint amount1Out, address indexed to)",
   },
-  { text_signature: "event Sync(uint112 reserve0, uint112 reserve1)" },
+  // { text_signature: "event Sync(uint112 reserve0, uint112 reserve1)" },
 ];
 
 const addEvents = async () => {
@@ -165,7 +165,7 @@ function App(props) {
   const fbAPI = "https://blocks.flashbots.net/v1/blocks";
 
   const getBlocks = async params => {
-    params.limit = "2";
+    params.limit = "20";
     const fburl = `${fbAPI}/?${new URLSearchParams(params)}`;
 
     const config = {
