@@ -264,27 +264,31 @@ function App(props) {
   };
 
   const getAllLogs = async logs => {
-    const dlogs = await Promise.all(decodeLogs(logs));
-    dlogs.map(async log => {
-      const { coin, logo, decimals } = await getToken(log.address);
-      let value;
-      log.events.map(e => {
-        if (e.type.match("uint") && e.value > 0) {
-          value = parseFloat(e.value / 10 ** decimals).toFixed(6);
-        }
-        // if(log.name == "Swap") console.log(e);
+    try{
+      const dlogs = await Promise.all(decodeLogs(logs));
+      dlogs.map(async log => {
+        const { coin, logo, decimals } = await getToken(log.address);
+        let value;
+        log.events.map(e => {
+          if (e.type.match("uint") && e.value > 0) {
+            value = parseFloat(e.value / 10 ** decimals).toFixed(6);
+          }
+          // if(log.name == "Swap") console.log(e);
+        });
+        log.coin = {
+          address: log.address,
+          name: coin,
+          event: log.name.toLowerCase(),
+          logo,
+          decimals,
+          value,
+        };
+        return log;
       });
-      log.coin = {
-        address: log.address,
-        name: coin,
-        event: log.name.toLowerCase(),
-        logo,
-        decimals,
-        value,
-      };
-      return log;
-    });
-    return dlogs;
+      return dlogs;
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   const onChangeBlockNum = async e => {
@@ -553,7 +557,7 @@ function App(props) {
             >
               refresh
             </Button>
-            <Divider />
+            {/*<Divider />*/}
             <Table
               showHeader={false}
               columns={cols}
@@ -561,7 +565,7 @@ function App(props) {
               size="small"
               dataSource={BlockTrxsData}
               loading={Loading == 1 ? false : true}
-              pagination={{ defaultPageSize: 50 }}
+              pagination={{ defaultPageSize: 1, position:["topCenter"] }}
               style={{
                 padding: 10,
               }}
