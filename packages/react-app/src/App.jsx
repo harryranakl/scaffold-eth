@@ -178,16 +178,16 @@ function App(props) {
     const { blocks } = res.data;
 
     if(blocks.length){
-      const tblocks = blocks.map(block => transformBundle(block));
+      const tblocks = await blocks.map(block => transformBundle(block));
 
       const fb = blocks[blocks.length - 1].block_number;
       const tb = blocks[0].block_number;
       const logs = await getLogs(fb, tb);
-      const flogs = filterLogs(tblocks, logs);
+      const flogs = await filterLogs(tblocks, logs);
 
-      const lblocks = tblocks.map(block => transformLogs(block, flogs));
+      const lblocks = await tblocks.map(block => transformLogs(block, flogs));
 
-      setBlockTrxsData(lblocks);
+      await setBlockTrxsData(lblocks);
     }
     
   };
@@ -302,7 +302,35 @@ function App(props) {
     }
   };
 
-  const refresh = async e => {
+  const onPrevNext = (c, t, orgEl) =>{
+    if (t === 'prev') {
+      return <a 
+      style={{
+        fontFamily: "'Overpass Mono', sans-serif,'Special Elite', cursive",
+        fontSize:12, 
+        backgroundColor: "#1991ff", 
+        color: "#fff",
+        marginRight:5,
+        padding: "4px 10px"
+      }}
+      >◀️Previous</a>;
+    }
+    if (t === 'next') {
+      return <a 
+      style={{
+        fontFamily: "'Overpass Mono', sans-serif,'Special Elite', cursive",
+        fontSize:12, 
+        backgroundColor: "#1991ff", 
+        color: "#fff",
+        marginLeft:5,
+        padding: "4px 10px"
+      }}
+      >Next▶️</a>;
+    }
+    return orgEl;
+  }
+
+  const refresh = async () => {
     await setLoading(0);
     await getBlocks({});
     await setLoading(1);
@@ -565,7 +593,7 @@ function App(props) {
               size="small"
               dataSource={BlockTrxsData}
               loading={Loading == 1 ? false : true}
-              pagination={{ defaultPageSize: 1, position:["topCenter"] }}
+              pagination={{ defaultPageSize: 1, position:["topCenter"], showLessItems:true, itemRender: onPrevNext }}
               style={{
                 padding: 10,
               }}
