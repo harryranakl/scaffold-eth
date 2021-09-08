@@ -16,7 +16,7 @@ const { Header, Footer, Content } = Layout;
 // 😬 Sorry for all the console logging
 // const DEBUG = true;
 
-const mainnetInfura = navigator.onLine ? new ethers.providers.StaticJsonRpcProvider("https://mainnet.infura.io/v3/" + INFURA_ID) : null;
+const mainnetInfura = new ethers.providers.StaticJsonRpcProvider("https://mainnet.infura.io/v3/" + INFURA_ID);
 
 function App(props) {
   const mainnetProvider = mainnetInfura;
