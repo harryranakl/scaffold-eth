@@ -148,6 +148,7 @@ function App(props) {
     // console.log(mainnetProvider)
     const bn = await mainnetProvider._lastBlockNumber;
     const blockWithTrxs = await mainnetProvider.getBlockWithTransactions( bn );
+    const feeData = await mainnetProvider.getFeeData();
     let bf = blockWithTrxs.baseFeePerGas.toString();
     const gu = blockWithTrxs.gasUsed.toString();
     const gl = blockWithTrxs.gasLimit.toString();
@@ -171,13 +172,25 @@ function App(props) {
     let trxsEGP = [];
     let trxsEMF = [];
     let trxsEMPF = [];
+
+    let fgp = feeData.gasPrice.toString();
+    let fmf = feeData.maxFeePerGas.toString();
+    let fmpf = feeData.maxPriorityFeePerGas.toString();
+
+    trxs.push({
+      hash:"",
+      gasPrice:toGWei(fromWei(fgp)),
+      maxFeePerGas:toGWei(fromWei(fmf)),
+      maxPriorityFeePerGas:toGWei(fromWei(fmpf)),
+    })
+    
     blockWithTrxs.transactions.map(t => {
       if(t.type == 2) {
         // console.log(t)
 
         const th = t.hash.toString();
         // let tg = t.gas.toString();
-        let tgl = t.gasLimit.toString();
+        // let tgl = t.gasLimit.toString();
         let tgp = t.gasPrice.toString();
         let tmf = t.maxFeePerGas.toString();
         let tmpf = t.maxPriorityFeePerGas.toString();
@@ -187,31 +200,31 @@ function App(props) {
         // } catch (e) {
         //   // console.log(e);
         // }
-        try {
-          tgl = ethers.BigNumber.from(tgl).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-        try {
-          tgp = ethers.BigNumber.from(tgp).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-        try {
-          tmf = ethers.BigNumber.from(tmf).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-        try {
-          tmpf = ethers.BigNumber.from(tmpf).toString();
-        } catch (e) {
-          // console.log(e);
-        }
+        // try {
+        //   tgl = ethers.BigNumber.from(tgl).toString();
+        // } catch (e) {
+        //   // console.log(e);
+        // }
+        // try {
+        //   tgp = ethers.BigNumber.from(tgp).toString();
+        // } catch (e) {
+        //   // console.log(e);
+        // }
+        // try {
+        //   tmf = ethers.BigNumber.from(tmf).toString();
+        // } catch (e) {
+        //   // console.log(e);
+        // }
+        // try {
+        //   tmpf = ethers.BigNumber.from(tmpf).toString();
+        // } catch (e) {
+        //   // console.log(e);
+        // }
 
         trxs.push({
           hash:th,
           // gas:tg,
-          gasLimit:tgl,
+          // gasLimit:tgl,
           gasPrice:toGWei(fromWei(tgp)),
           maxFeePerGas:toGWei(fromWei(tmf)),
           maxPriorityFeePerGas:toGWei(fromWei(tmpf)),
@@ -220,7 +233,7 @@ function App(props) {
       } else {
         const th = t.hash.toString();
         // let tg = t.gas.toString();
-        let tgl = t.gasLimit.toString();
+        // let tgl = t.gasLimit.toString();
         let tgp = t.gasPrice.toString();
 
         // try {
@@ -228,21 +241,21 @@ function App(props) {
         // } catch (e) {
         //   // console.log(e);
         // }
-        try {
-          tgl = ethers.BigNumber.from(tgl).toString();
-        } catch (e) {
-          // console.log(e);
-        }
-        try {
-          tgp = ethers.BigNumber.from(tgp).toString();
-        } catch (e) {
-          // console.log(e);
-        }
+        // try {
+        //   tgl = ethers.BigNumber.from(tgl).toString();
+        // } catch (e) {
+        //   // console.log(e);
+        // }
+        // try {
+        //   tgp = ethers.BigNumber.from(tgp).toString();
+        // } catch (e) {
+        //   // console.log(e);
+        // }
 
         trxs.push({
           hash:th,
           // gas:tg,
-          gasLimit:tgl,
+          // gasLimit:tgl,
           gasPrice:toGWei(fromWei(tgp)),
           maxFeePerGas:0,
           maxPriorityFeePerGas:0,
