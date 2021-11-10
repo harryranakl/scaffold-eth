@@ -1,8 +1,5 @@
-import Portis from "@portis/web3";
-import WalletConnectProvider from "@walletconnect/web3-provider";
-import { Alert, Button, Col, Menu, Row } from "antd";
+import { Row, Col, Layout, Card, Space, Divider, Radio, Input, Button, Table, Alert, List, PageHeader } from "antd";
 import "antd/dist/antd.css";
-import Authereum from "authereum";
 import {
   useBalance,
   useContractLoader,
@@ -11,24 +8,14 @@ import {
   useOnBlock,
   useUserProviderAndSigner,
 } from "eth-hooks";
-import { useExchangeEthPrice } from "eth-hooks/dapps/dex";
-import Fortmatic from "fortmatic";
 import React, { useCallback, useEffect, useState } from "react";
-import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
-//import Torus from "@toruslabs/torus-embed"
-import WalletLink from "walletlink";
-import Web3Modal from "web3modal";
 import "./App.css";
-import { Account, Contract, Faucet, GasGauge, Header, Ramp, ThemeSwitch } from "./components";
+import axios from "axios";
 import { INFURA_ID, NETWORK, NETWORKS, ALCHEMY_KEY } from "./constants";
-import externalContracts from "./contracts/external_contracts";
-// contracts
-import deployedContracts from "./contracts/hardhat_contracts.json";
-import { Transactor } from "./helpers";
-// import Hints from "./Hints";
-import { ExampleUI, Hints, Subgraph } from "./views";
 
 const { ethers } = require("ethers");
+
+const { Header, Footer, Content } = Layout;
 /*
     Welcome to 🏗 scaffold-eth !
 
@@ -57,576 +44,601 @@ const NETWORKCHECK = true;
 
 // 🛰 providers
 if (DEBUG) console.log("📡 Connecting to Mainnet Ethereum");
-// const mainnetProvider = getDefaultProvider("mainnet", { infura: INFURA_ID, etherscan: ETHERSCAN_KEY, quorum: 1 });
-// const mainnetProvider = new InfuraProvider("mainnet",INFURA_ID);
-//
-// attempt to connect to our own scaffold eth rpc and if that fails fall back to infura...
-// Using StaticJsonRpcProvider as the chainId won't change see https://github.com/ethers-io/ethers.js/issues/901
-const scaffoldEthProvider = navigator.onLine
-  ? new ethers.providers.StaticJsonRpcProvider("https://rpc.scaffoldeth.io:48544")
-  : null;
-const poktMainnetProvider = navigator.onLine
-  ? new ethers.providers.StaticJsonRpcProvider(
+
+// const scaffoldEthProvider =
+  // new ethers.providers.StaticJsonRpcProvider("https://rpc.scaffoldeth.io:48544");
+const poktMainnetProvider =
+  new ethers.providers.StaticJsonRpcProvider(
       "https://eth-mainnet.gateway.pokt.network/v1/lb/61853c567335c80036054a2b",
-    )
-  : null;
-const mainnetInfura = navigator.onLine
-  ? new ethers.providers.StaticJsonRpcProvider(`https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`)
-  : null;
-// ( ⚠️ Getting "failed to meet quorum" errors? Check your INFURA_ID
-// 🏠 Your local provider is usually pointed at your local blockchain
-const localProviderUrl = targetNetwork.rpcUrl;
-// as you deploy to other networks you can set REACT_APP_PROVIDER=https://dai.poa.network in packages/react-app/.env
-const localProviderUrlFromEnv = process.env.REACT_APP_PROVIDER ? process.env.REACT_APP_PROVIDER : localProviderUrl;
-if (DEBUG) console.log("🏠 Connecting to provider:", localProviderUrlFromEnv);
-const localProvider = new ethers.providers.StaticJsonRpcProvider(localProviderUrlFromEnv);
+    );
+const mainnetInfura =
+  new ethers.providers.StaticJsonRpcProvider(`https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`);
 
-// 🔭 block explorer URL
-const blockExplorer = targetNetwork.blockExplorer;
-
-// Coinbase walletLink init
-const walletLink = new WalletLink({
-  appName: "coinbase",
-});
-
-// WalletLink provider
-const walletLinkProvider = walletLink.makeWeb3Provider(`https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`, 1);
-
-// Portis ID: 6255fb2b-58c8-433b-a2c9-62098c05ddc9
-/*
-  Web3 modal helps us "connect" external wallets:
-*/
-const web3Modal = new Web3Modal({
-  network: "mainnet", // Optional. If using WalletConnect on xDai, change network to "xdai" and add RPC info below for xDai chain.
-  cacheProvider: true, // optional
-  theme: "light", // optional. Change to "dark" for a dark theme.
-  providerOptions: {
-    walletconnect: {
-      package: WalletConnectProvider, // required
-      options: {
-        bridge: "https://polygon.bridge.walletconnect.org",
-        infuraId: INFURA_ID,
-        rpc: {
-          1: `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`, // mainnet // For more WalletConnect providers: https://docs.walletconnect.org/quick-start/dapps/web3-provider#required
-          42: `https://kovan.infura.io/v3/${INFURA_ID}`,
-          100: "https://dai.poa.network", // xDai
-        },
-      },
-    },
-    portis: {
-      display: {
-        logo: "https://user-images.githubusercontent.com/9419140/128913641-d025bc0c-e059-42de-a57b-422f196867ce.png",
-        name: "Portis",
-        description: "Connect to Portis App",
-      },
-      package: Portis,
-      options: {
-        id: "6255fb2b-58c8-433b-a2c9-62098c05ddc9",
-      },
-    },
-    fortmatic: {
-      package: Fortmatic, // required
-      options: {
-        key: "pk_live_5A7C91B2FC585A17", // required
-      },
-    },
-    // torus: {
-    //   package: Torus,
-    //   options: {
-    //     networkParams: {
-    //       host: "https://localhost:8545", // optional
-    //       chainId: 1337, // optional
-    //       networkId: 1337 // optional
-    //     },
-    //     config: {
-    //       buildEnv: "development" // optional
-    //     },
-    //   },
-    // },
-    "custom-walletlink": {
-      display: {
-        logo: "https://play-lh.googleusercontent.com/PjoJoG27miSglVBXoXrxBSLveV6e3EeBPpNY55aiUUBM9Q1RCETKCOqdOkX2ZydqVf0",
-        name: "Coinbase",
-        description: "Connect to Coinbase Wallet (not Coinbase App)",
-      },
-      package: walletLinkProvider,
-      connector: async (provider, _options) => {
-        await provider.enable();
-        return provider;
-      },
-    },
-    authereum: {
-      package: Authereum, // required
-    },
-  },
-});
+const gasConverter = (g,t) => {
+  let gm,gd;
+  if(t == 3) gm = g * 1000000000;
+  if(t == 4) gm = g * 100000000;
+  if(t == 12) gm = g;
+  if(t == 14) gm = g/10;
+  
+  gd = parseInt(gm, 10) / 10 ** 9;
+  return parseFloat(gd).toFixed(0);
+};
 
 function App(props) {
-  const mainnetProvider =
-    poktMainnetProvider && poktMainnetProvider._isProvider
-      ? poktMainnetProvider
-      : scaffoldEthProvider && scaffoldEthProvider._network
-      ? scaffoldEthProvider
-      : mainnetInfura;
+  // const mainnetProvider = scaffoldEthProvider && scaffoldEthProvider._network ? scaffoldEthProvider : null;
+  const mainnetProvider = mainnetInfura;
 
-  const [injectedProvider, setInjectedProvider] = useState();
-  const [address, setAddress] = useState();
+  const [blockNum, setBlockNum] = useState(0);
+  const [Loading, setLoading] = useState(0);
 
-  const logoutOfWeb3Modal = async () => {
-    await web3Modal.clearCachedProvider();
-    if (injectedProvider && injectedProvider.provider && typeof injectedProvider.provider.disconnect == "function") {
-      await injectedProvider.provider.disconnect();
-    }
-    setTimeout(() => {
-      window.location.reload();
-    }, 1);
+  const [gasPricesGS, setGasPricesGS] = useState({});
+  const [gasPricesBS, setGasPricesBS] = useState({});
+  const [gasPricesGNO, setGasPricesGNO] = useState({});
+  const [gasPricesMS, setGasPricesMS] = useState({});
+  const [gasPricesEC, setGasPricesEC] = useState({});
+  const [gasPricesGP, setGasPricesGP] = useState({});
+  const [gasPricesGT, setGasPricesTP] = useState({});
+
+  const ethgasAPI = "https://ethgasstation.info/json/ethgasAPI.json";
+  const blockscoutAPI = "https://blockscout.com/eth/mainnet/api/v1/gas-price-oracle";
+  const gnosisAPI = "https://safe-relay.gnosis.io/api/v1/gas-station/";
+  const metaswapAPI = "https://api.metaswap.codefi.network/gasPrices";
+  const etherchainAPI = "https://www.etherchain.org/api/gasnow";
+  const gaspriceAPI = "https://api.gasprice.io/v1/estimates";
+  const txpriceAPI = "https://api.txprice.com/";
+// gasPrices(`https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${ETHERSCAN_APIKEY}`, true);
+  const getGasPrices = () => {
+    axios
+      .get(ethgasAPI)
+      .then(response => {
+        const { data } = response;
+        const { average, fast, fastest } = data;
+        const gasObj = {
+          average: gasConverter(average,4),
+          fast: gasConverter(fast,4),
+          fastest: gasConverter(fastest,4),
+        };
+        setGasPricesGS(gasObj);
+      })
+      .catch(error => console.log(error));
+
+    axios
+      .get(blockscoutAPI)
+      .then(response => {
+        const { data } = response;
+        const { slow, average, fast } = data;
+        const gasObj = {
+          slow: gasConverter(slow,3),
+          average: gasConverter(average,3),
+          fast: gasConverter(fast,3)
+        };
+        setGasPricesBS(gasObj);
+      })
+      .catch(error => console.log(error));
+
+    axios
+      .get(gnosisAPI)
+      .then(response => {
+        const { data } = response;
+        const { standard, fast, fastest } = data;
+        const gasObj = {
+          average: gasConverter(standard,12),
+          fast: gasConverter(fast,12),
+          fastest: gasConverter(fastest,14),
+        };
+        setGasPricesGNO(gasObj);
+      })
+      .catch(error => console.log(error));
+
+    axios
+      .get(metaswapAPI)
+      .then(response => {
+        const { data } = response;
+        const { SafeGasPrice, ProposeGasPrice, FastGasPrice } = data;
+        const gasObj = {
+          average: gasConverter(SafeGasPrice,3),
+          fast: gasConverter(ProposeGasPrice,3),
+          fastest: gasConverter(FastGasPrice,3),
+        };
+        setGasPricesMS(gasObj);
+      })
+      .catch(error => console.log(error));
+
+    axios
+      .get(etherchainAPI)
+      .then(response => {
+        const { data } = response;
+        const { standard, fast, rapid } = data.data;
+        const gasObj = {
+          average: gasConverter(standard,12),
+          fast: gasConverter(fast,12),
+          fastest: gasConverter(rapid,12),
+        };
+        setGasPricesEC(gasObj);
+      })
+      .catch(error => console.log(error));
+
+    axios
+      .get(gaspriceAPI)
+      .then(response => {
+        const { data } = response;
+        const { eco, fast, instant } = data.result;
+        const gasObj = {
+          average: gasConverter(eco.feeCap,3),
+          fast: gasConverter(fast.feeCap,3),
+          fastest: gasConverter(instant.feeCap,3),
+        };
+        setGasPricesGP(gasObj);
+      })
+      .catch(error => console.log(error));
+
+    axios
+      .get(txpriceAPI)
+      .then(response => {
+        const { data } = response;
+        const { blockPrices } = data;
+        const { estimatedPrices} = blockPrices;
+
+        const gasObj = {
+          fast: gasConverter(estimatedPrices[2].price,3),
+          fastest: gasConverter(estimatedPrices[0].price,3),
+        };
+        setGasPricesGP(gasObj);
+      })
+      .catch(error => console.log(error));
   };
 
-  /* 💵 This hook will get the price of ETH from 🦄 Uniswap: */
-  const price = useExchangeEthPrice(targetNetwork, mainnetProvider);
+  const init = () => {
+    getGasPrices();
+  };
 
-  /* 🔥 This hook will get the price of Gas from ⛽️ EtherGasStation */
-  const gasPrice = useGasPrice(targetNetwork, "fast");
-  // Use your injected provider from 🦊 Metamask or if you don't have it then instantly generate a 🔥 burner wallet.
-  const userProviderAndSigner = useUserProviderAndSigner(injectedProvider, localProvider);
-  const userSigner = userProviderAndSigner.signer;
-
-  useEffect(() => {
-    async function getAddress() {
-      if (userSigner) {
-        const newAddress = await userSigner.getAddress();
-        setAddress(newAddress);
-      }
-    }
-    getAddress();
-  }, [userSigner]);
-
-  // You can warn the user if you would like them to be on a specific network
-  const localChainId = localProvider && localProvider._network && localProvider._network.chainId;
-  const selectedChainId =
-    userSigner && userSigner.provider && userSigner.provider._network && userSigner.provider._network.chainId;
-
-  // For more hooks, check out 🔗eth-hooks at: https://www.npmjs.com/package/eth-hooks
-
-  // The transactor wraps transactions and provides notificiations
-  const tx = Transactor(userSigner, gasPrice);
-
-  // Faucet Tx can be used to send funds from the faucet
-  const faucetTx = Transactor(localProvider, gasPrice);
-
-  // 🏗 scaffold-eth is full of handy hooks like this one to get your balance:
-  const yourLocalBalance = useBalance(localProvider, address);
-
-  // Just plug in different 🛰 providers to get your balance on different chains:
-  const yourMainnetBalance = useBalance(mainnetProvider, address);
-
-  // const contractConfig = useContractConfig();
-
-  const contractConfig = { deployedContracts: deployedContracts || {}, externalContracts: externalContracts || {} };
-
-  // Load in your local 📝 contract and read a value from it:
-  const readContracts = useContractLoader(localProvider, contractConfig);
-
-  // If you want to make 🔐 write transactions to your contracts, use the userSigner:
-  const writeContracts = useContractLoader(userSigner, contractConfig, localChainId);
-
-  // EXTERNAL CONTRACT EXAMPLE:
-  //
-  // If you want to bring in the mainnet DAI contract it would look like:
-  const mainnetContracts = useContractLoader(mainnetProvider, contractConfig);
-
-  // If you want to call a function on a new block
-  useOnBlock(mainnetProvider, () => {
-    console.log(`⛓ A new mainnet block is here: ${mainnetProvider._lastBlockNumber}`);
+  useOnBlock(mainnetProvider, async () => {
+    await setLoading(0);
+    // console.log(mainnetProvider)
+    const bn = await mainnetProvider._lastBlockNumber;
+    setBlockNum(bn);
+    init();
+    await setLoading(1);
   });
-
-  // Then read your DAI balance like:
-  const myMainnetDAIBalance = useContractReader(mainnetContracts, "DAI", "balanceOf", [
-    "0x34aA3F359A9D614239015126635CE7732c18fDF3",
-  ]);
-
-  // keep track of a variable from the contract in the local React state:
-  const purpose = useContractReader(readContracts, "YourContract", "purpose");
 
   /*
   const addressFromENS = useResolveName(mainnetProvider, "austingriffith.eth");
   console.log("🏷 Resolved austingriffith.eth as:",addressFromENS)
   */
 
-  //
-  // 🧫 DEBUG 👨🏻‍🔬
-  //
-  useEffect(() => {
-    if (
-      DEBUG &&
-      mainnetProvider &&
-      address &&
-      selectedChainId &&
-      yourLocalBalance &&
-      yourMainnetBalance &&
-      readContracts &&
-      writeContracts &&
-      mainnetContracts
-    ) {
-      console.log("_____________________________________ 🏗 scaffold-eth _____________________________________");
-      console.log("🌎 mainnetProvider", mainnetProvider);
-      console.log("🏠 localChainId", localChainId);
-      console.log("👩‍💼 selected address:", address);
-      console.log("🕵🏻‍♂️ selectedChainId:", selectedChainId);
-      console.log("💵 yourLocalBalance", yourLocalBalance ? ethers.utils.formatEther(yourLocalBalance) : "...");
-      console.log("💵 yourMainnetBalance", yourMainnetBalance ? ethers.utils.formatEther(yourMainnetBalance) : "...");
-      console.log("📝 readContracts", readContracts);
-      console.log("🌍 DAI contract on mainnet:", mainnetContracts);
-      console.log("💵 yourMainnetDAIBalance", myMainnetDAIBalance);
-      console.log("🔐 writeContracts", writeContracts);
-    }
-  }, [
-    mainnetProvider,
-    address,
-    selectedChainId,
-    yourLocalBalance,
-    yourMainnetBalance,
-    readContracts,
-    writeContracts,
-    mainnetContracts,
-  ]);
-
-  let networkDisplay = "";
-  if (NETWORKCHECK && localChainId && selectedChainId && localChainId !== selectedChainId) {
-    const networkSelected = NETWORK(selectedChainId);
-    const networkLocal = NETWORK(localChainId);
-    if (selectedChainId === 1337 && localChainId === 31337) {
-      networkDisplay = (
-        <div style={{ zIndex: 2, position: "absolute", right: 0, top: 60, padding: 16 }}>
-          <Alert
-            message="⚠️ Wrong Network ID"
-            description={
-              <div>
-                You have <b>chain id 1337</b> for localhost and you need to change it to <b>31337</b> to work with
-                HardHat.
-                <div>(MetaMask -&gt; Settings -&gt; Networks -&gt; Chain ID -&gt; 31337)</div>
-              </div>
-            }
-            type="error"
-            closable={false}
-          />
-        </div>
-      );
-    } else {
-      networkDisplay = (
-        <div style={{ zIndex: 2, position: "absolute", right: 0, top: 60, padding: 16 }}>
-          <Alert
-            message="⚠️ Wrong Network"
-            description={
-              <div>
-                You have <b>{networkSelected && networkSelected.name}</b> selected and you need to be on{" "}
-                <Button
-                  onClick={async () => {
-                    const ethereum = window.ethereum;
-                    const data = [
-                      {
-                        chainId: "0x" + targetNetwork.chainId.toString(16),
-                        chainName: targetNetwork.name,
-                        nativeCurrency: targetNetwork.nativeCurrency,
-                        rpcUrls: [targetNetwork.rpcUrl],
-                        blockExplorerUrls: [targetNetwork.blockExplorer],
-                      },
-                    ];
-                    console.log("data", data);
-
-                    let switchTx;
-                    // https://docs.metamask.io/guide/rpc-api.html#other-rpc-methods
-                    try {
-                      switchTx = await ethereum.request({
-                        method: "wallet_switchEthereumChain",
-                        params: [{ chainId: data[0].chainId }],
-                      });
-                    } catch (switchError) {
-                      // not checking specific error code, because maybe we're not using MetaMask
-                      try {
-                        switchTx = await ethereum.request({
-                          method: "wallet_addEthereumChain",
-                          params: data,
-                        });
-                      } catch (addError) {
-                        // handle "add" error
-                      }
-                    }
-
-                    if (switchTx) {
-                      console.log(switchTx);
-                    }
-                  }}
-                >
-                  <b>{networkLocal && networkLocal.name}</b>
-                </Button>
-              </div>
-            }
-            type="error"
-            closable={false}
-          />
-        </div>
-      );
-    }
-  } else {
-    networkDisplay = (
-      <div style={{ zIndex: -1, position: "absolute", right: 154, top: 28, padding: 16, color: targetNetwork.color }}>
-        {targetNetwork.name}
-      </div>
-    );
-  }
-
-  const loadWeb3Modal = useCallback(async () => {
-    const provider = await web3Modal.connect();
-    setInjectedProvider(new ethers.providers.Web3Provider(provider));
-
-    provider.on("chainChanged", chainId => {
-      console.log(`chain changed to ${chainId}! updating providers`);
-      setInjectedProvider(new ethers.providers.Web3Provider(provider));
-    });
-
-    provider.on("accountsChanged", () => {
-      console.log(`account changed!`);
-      setInjectedProvider(new ethers.providers.Web3Provider(provider));
-    });
-
-    // Subscribe to session disconnection
-    provider.on("disconnect", (code, reason) => {
-      console.log(code, reason);
-      logoutOfWeb3Modal();
-    });
-  }, [setInjectedProvider]);
-
-  useEffect(() => {
-    if (web3Modal.cachedProvider) {
-      loadWeb3Modal();
-    }
-  }, [loadWeb3Modal]);
-
-  const [route, setRoute] = useState();
-  useEffect(() => {
-    setRoute(window.location.pathname);
-  }, [setRoute]);
-
-  let faucetHint = "";
-  const faucetAvailable = localProvider && localProvider.connection && targetNetwork.name.indexOf("local") !== -1;
-
-  const [faucetClicked, setFaucetClicked] = useState(false);
-  if (
-    !faucetClicked &&
-    localProvider &&
-    localProvider._network &&
-    localProvider._network.chainId === 31337 &&
-    yourLocalBalance &&
-    ethers.utils.formatEther(yourLocalBalance) <= 0
-  ) {
-    faucetHint = (
-      <div style={{ padding: 16 }}>
-        <Button
-          type="primary"
-          onClick={() => {
-            faucetTx({
-              to: address,
-              value: ethers.utils.parseEther("0.01"),
-            });
-            setFaucetClicked(true);
-          }}
-        >
-          💰 Grab funds from the faucet ⛽️
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="App">
-      {/* ✏️ Edit the header and change the title to your project name */}
-      <Header />
-      {networkDisplay}
-      <BrowserRouter>
-        <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
-          <Menu.Item key="/">
-            <Link
-              onClick={() => {
-                setRoute("/");
-              }}
-              to="/"
-            >
-              YourContract
-            </Link>
-          </Menu.Item>
-          <Menu.Item key="/hints">
-            <Link
-              onClick={() => {
-                setRoute("/hints");
-              }}
-              to="/hints"
-            >
-              Hints
-            </Link>
-          </Menu.Item>
-          <Menu.Item key="/exampleui">
-            <Link
-              onClick={() => {
-                setRoute("/exampleui");
-              }}
-              to="/exampleui"
-            >
-              ExampleUI
-            </Link>
-          </Menu.Item>
-          <Menu.Item key="/mainnetdai">
-            <Link
-              onClick={() => {
-                setRoute("/mainnetdai");
-              }}
-              to="/mainnetdai"
-            >
-              Mainnet DAI
-            </Link>
-          </Menu.Item>
-          <Menu.Item key="/subgraph">
-            <Link
-              onClick={() => {
-                setRoute("/subgraph");
-              }}
-              to="/subgraph"
-            >
-              Subgraph
-            </Link>
-          </Menu.Item>
-        </Menu>
+      <Layout>
+        <Header
+          style={{ 
+            padding: 0, 
+            position: "fixed", 
+            zIndex: 1, 
+            width: "100%", 
+            height: "auto", 
+            top: 0 
+          }}
+        >
+          <a href="/" target="_blank" rel="noopener noreferrer">
+            <PageHeader title="🏗 scaffold-eth" subTitle="gas api" style={{ cursor: "pointer" }} />
+          </a>
+        </Header>
+        <Content style={{ paddingTop: 150, paddingBottom: 50, width: "100%" }} className="">
+          <div
+            style={{
+              width: "auto",
+              // margin: "auto",
+              margin: 10,
+              padding: 10,
+              fontWeight: "bolder",
+              borderRadius: 12,
+            }}
+            class="grad_deeprelief"
+          >
+            <h3> ⚓ latest block num: {blockNum}</h3>
+            <Divider />
 
-        <Switch>
-          <Route exact path="/">
-            {/*
-                🎛 this scaffolding is full of commonly used components
-                this <Contract/> component will automatically parse your ABI
-                and give you a form to interact with it locally
-            */}
+            <Row align="middle" gutter={[4, 4]}>
+            <Col span={8}>
+            <span> ⛽️ (eth gas station):</span>
+            </Col>
+            <Col span={16}>
+            <Radio.Group buttonStyle="solid">
+              <Radio.Button
+                value={gasPricesGS && gasPricesGS.average}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#2FB999",
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>average</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGS && gasPricesGS.average}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesGS && gasPricesGS.fast}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#456cda", //0237CC
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fast</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGS && gasPricesGS.fast}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesGS && gasPricesGS.fastest}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#dc658d", //FF558F
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fastest</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGS && gasPricesGS.fastest}</div>
+              </Radio.Button>
+            </Radio.Group>
+            </Col>
+            </Row>
 
-            <Contract
-              name="YourContract"
-              price={price}
-              signer={userSigner}
-              provider={localProvider}
-              address={address}
-              blockExplorer={blockExplorer}
-              contractConfig={contractConfig}
-            />
-          </Route>
-          <Route path="/hints">
-            <Hints
-              address={address}
-              yourLocalBalance={yourLocalBalance}
-              mainnetProvider={mainnetProvider}
-              price={price}
-            />
-          </Route>
-          <Route path="/exampleui">
-            <ExampleUI
-              address={address}
-              userSigner={userSigner}
-              mainnetProvider={mainnetProvider}
-              localProvider={localProvider}
-              yourLocalBalance={yourLocalBalance}
-              price={price}
-              tx={tx}
-              writeContracts={writeContracts}
-              readContracts={readContracts}
-              purpose={purpose}
-            />
-          </Route>
-          <Route path="/mainnetdai">
-            <Contract
-              name="DAI"
-              customContract={mainnetContracts && mainnetContracts.contracts && mainnetContracts.contracts.DAI}
-              signer={userSigner}
-              provider={mainnetProvider}
-              address={address}
-              blockExplorer="https://etherscan.io/"
-              contractConfig={contractConfig}
-              chainId={1}
-            />
-            {/*
-            <Contract
-              name="UNI"
-              customContract={mainnetContracts && mainnetContracts.contracts && mainnetContracts.contracts.UNI}
-              signer={userSigner}
-              provider={mainnetProvider}
-              address={address}
-              blockExplorer="https://etherscan.io/"
-            />
-            */}
-          </Route>
-          <Route path="/subgraph">
-            <Subgraph
-              subgraphUri={props.subgraphUri}
-              tx={tx}
-              writeContracts={writeContracts}
-              mainnetProvider={mainnetProvider}
-            />
-          </Route>
-        </Switch>
-      </BrowserRouter>
+            <Row align="middle" gutter={[4, 4]}>
+            <Col span={8}>
+            <span> ⛽️ (block scout):</span>
+            </Col>
+            <Col span={16}>
+            <Radio.Group buttonStyle="solid">
+              <Radio.Button
+                value={gasPricesBS && gasPricesBS.average}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#2FB999",
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>average</div>
+                <div style={{ fontSize: 20 }}>{gasPricesBS && gasPricesBS.average}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesBS && gasPricesBS.fast}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#456cda", //0237CC
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fast</div>
+                <div style={{ fontSize: 20 }}>{gasPricesBS && gasPricesBS.fast}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesBS && gasPricesBS.fast}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#dc658d", //FF558F
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fastest</div>
+                <div style={{ fontSize: 20 }}>{gasPricesBS && gasPricesBS.fast}</div>
+              </Radio.Button>
+            </Radio.Group>
+            </Col>
+            </Row>
 
-      <ThemeSwitch />
+            <Row align="middle" gutter={[4, 4]}>
+            <Col span={8}>
+            <span> ⛽️ (gnosis):</span>
+            </Col>
+            <Col span={16}>
+            <Radio.Group buttonStyle="solid">
+              <Radio.Button
+                value={gasPricesGNO && gasPricesGNO.average}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#2FB999",
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>average</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGNO && gasPricesGNO.average}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesGNO && gasPricesGNO.fast}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#456cda", //0237CC
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fast</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGNO && gasPricesGNO.fast}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesGNO && gasPricesGNO.fastest}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#dc658d", //FF558F
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fastest</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGNO && gasPricesGNO.fastest}</div>
+              </Radio.Button>
+            </Radio.Group>
+            </Col>
+            </Row>
 
-      {/* 👨‍💼 Your account is in the top right with a wallet at connect options */}
-      <div style={{ position: "fixed", textAlign: "right", right: 0, top: 0, padding: 10 }}>
-        <Account
-          address={address}
-          localProvider={localProvider}
-          userSigner={userSigner}
-          mainnetProvider={mainnetProvider}
-          price={price}
-          web3Modal={web3Modal}
-          loadWeb3Modal={loadWeb3Modal}
-          logoutOfWeb3Modal={logoutOfWeb3Modal}
-          blockExplorer={blockExplorer}
-        />
-        {faucetHint}
-      </div>
+            <Row align="middle" gutter={[4, 4]}>
+            <Col span={8}>
+            <span> ⛽️ (metaswap):</span>
+            </Col>
+            <Col span={16}>
+            <Radio.Group buttonStyle="solid">
+              <Radio.Button
+                value={gasPricesMS && gasPricesMS.average}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#2FB999",
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>average</div>
+                <div style={{ fontSize: 20 }}>{gasPricesMS && gasPricesMS.average}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesMS && gasPricesMS.fast}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#456cda", //0237CC
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fast</div>
+                <div style={{ fontSize: 20 }}>{gasPricesMS && gasPricesMS.fast}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesMS && gasPricesMS.fastest}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#dc658d", //FF558F
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fastest</div>
+                <div style={{ fontSize: 20 }}>{gasPricesMS && gasPricesMS.fastest}</div>
+              </Radio.Button>
+            </Radio.Group>
+            </Col>
+            </Row>
 
-      {/* 🗺 Extra UI like gas price, eth price, faucet, and support: */}
-      <div style={{ position: "fixed", textAlign: "left", left: 0, bottom: 20, padding: 10 }}>
-        <Row align="middle" gutter={[4, 4]}>
-          <Col span={8}>
-            <Ramp price={price} address={address} networks={NETWORKS} />
-          </Col>
+            <Row align="middle" gutter={[4, 4]}>
+            <Col span={8}>
+            <span> ⛽️ (etherchain):</span>
+            </Col>
+            <Col span={16}>
+            <Radio.Group buttonStyle="solid">
+              <Radio.Button
+                value={gasPricesEC && gasPricesEC.average}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#2FB999",
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>average</div>
+                <div style={{ fontSize: 20 }}>{gasPricesEC && gasPricesEC.average}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesEC && gasPricesEC.fast}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#456cda", //0237CC
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fast</div>
+                <div style={{ fontSize: 20 }}>{gasPricesEC && gasPricesEC.fast}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesEC && gasPricesEC.fastest}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#dc658d", //FF558F
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fastest</div>
+                <div style={{ fontSize: 20 }}>{gasPricesEC && gasPricesEC.fastest}</div>
+              </Radio.Button>
+            </Radio.Group>
+            </Col>
+            </Row>
 
-          <Col span={8} style={{ textAlign: "center", opacity: 0.8 }}>
-            <GasGauge gasPrice={gasPrice} />
-          </Col>
-          <Col span={8} style={{ textAlign: "center", opacity: 1 }}>
-            <Button
-              onClick={() => {
-                window.open("https://t.me/joinchat/KByvmRe5wkR-8F_zz6AjpA");
-              }}
-              size="large"
-              shape="round"
-            >
-              <span style={{ marginRight: 8 }} role="img" aria-label="support">
-                💬
-              </span>
-              Support
-            </Button>
-          </Col>
-        </Row>
+            <Row align="middle" gutter={[4, 4]}>
+            <Col span={8}>
+            <span> ⛽️ (gasprice.io):</span>
+            </Col>
+            <Col span={16}>
+            <Radio.Group buttonStyle="solid">
+              <Radio.Button
+                value={gasPricesGP && gasPricesGP.average}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#2FB999",
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>average</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGP && gasPricesGP.average}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesGP && gasPricesGP.fast}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#456cda", //0237CC
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fast</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGP && gasPricesGP.fast}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesGP && gasPricesGP.fastest}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#dc658d", //FF558F
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fastest</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGP && gasPricesGP.fastest}</div>
+              </Radio.Button>
+            </Radio.Group>
+            </Col>
+            </Row>
 
-        <Row align="middle" gutter={[4, 4]}>
-          <Col span={24}>
-            {
-              /*  if the local provider has a signer, let's show the faucet:  */
-              faucetAvailable ? (
-                <Faucet localProvider={localProvider} price={price} ensProvider={mainnetProvider} />
-              ) : (
-                ""
-              )
-            }
-          </Col>
-        </Row>
-      </div>
+            <Row align="middle" gutter={[4, 4]}>
+            <Col span={8}>
+            <span> ⛽️ (txprice):</span>
+            </Col>
+            <Col span={16}>
+            <Radio.Group buttonStyle="solid">
+              <Radio.Button
+                value={gasPricesGP && gasPricesGP.fast}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#456cda", //0237CC
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fast</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGP && gasPricesGP.fast}</div>
+              </Radio.Button>
+              <Radio.Button
+                value={gasPricesGP && gasPricesGP.fastest}
+                style={{
+                  margin: 10,
+                  padding: 15,
+                  backgroundColor: "#dc658d", //FF558F
+                  borderRadius: 4,
+                  width: "100px",
+                  height: "100px",
+                }}
+              >
+                <div style={{ fontSize: 15 }}>fastest</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGP && gasPricesGP.fastest}</div>
+              </Radio.Button>
+            </Radio.Group>
+            </Col>
+            </Row>
+            
+          </div>
+
+          <div
+            style={{
+              width: "auto",
+              // margin: "auto",
+              margin: 10,
+              padding: 10,
+              fontWeight: "bolder",
+              borderRadius: 12,
+            }}
+            class="grad_deeprelief"
+          >
+            <div> ****** </div>
+            <div style={{ textAlign: "left" }}>
+              
+            </div>
+          </div>
+        </Content>
+        <Footer
+          style={{ padding: 5, position: "fixed", zIndex: 1, width: "100%", bottom: 0 }}
+          className="grad_glasswater"
+        >
+          <Row align="middle" gutter={[4, 4]}>
+            <Col span={12}>
+            </Col>
+
+            <Col span={12} style={{ textAlign: "center" }}>
+              <div style={{ opacity: 0.5 }}>
+                {/*<a
+                  target="_blank"
+                  style={{ color: "#000" }}
+                  href="https://github.com/austintgriffith/scaffold-eth"
+                >
+                  🍴 Repo: Fork me!
+                </a>
+                <br />*/}
+                <a
+                  target="_blank"
+                  style={{ color: "#000" }}
+                  href="https://github.com/harryranakl/compare-gas-apis"
+                >
+                  🍴 Repo: Fork me!
+                </a>
+              </div>
+            </Col>
+          </Row>
+          {/*<ThemeSwitch />*/}
+        </Footer>
+      </Layout>
     </div>
   );
 }
