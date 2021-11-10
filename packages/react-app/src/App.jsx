@@ -55,11 +55,16 @@ const mainnetInfura =
   new ethers.providers.StaticJsonRpcProvider(`https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`);
 
 const gasConverter = (g,t) => {
-  let gm,gd;
+  let gm,gs,gd;
   if(t == 3) gm = g * 1000000000;
   if(t == 4) gm = g * 100000000;
   if(t == 12) gm = g;
-  if(t == 14) gm = g/10;
+  if(t == 14) {
+    gs = g.toString();
+    if(gs.length == 12) gm = g;
+    if(gs.length == 13) gm = g/10;
+    if(gs.length == 14) gm = g/100;
+  }
   
   gd = parseInt(gm, 10) / 10 ** 9;
   return parseFloat(gd).toFixed(0);
@@ -78,7 +83,7 @@ function App(props) {
   const [gasPricesMS, setGasPricesMS] = useState({});
   const [gasPricesEC, setGasPricesEC] = useState({});
   const [gasPricesGP, setGasPricesGP] = useState({});
-  const [gasPricesGT, setGasPricesTP] = useState({});
+  const [gasPricesGT, setGasPricesGT] = useState({});
 
   const ethgasAPI = "https://ethgasstation.info/json/ethgasAPI.json";
   const blockscoutAPI = "https://blockscout.com/eth/mainnet/api/v1/gas-price-oracle";
@@ -178,13 +183,13 @@ function App(props) {
       .then(response => {
         const { data } = response;
         const { blockPrices } = data;
-        const { estimatedPrices} = blockPrices;
+        const { estimatedPrices} = blockPrices[0];
 
         const gasObj = {
           fast: gasConverter(estimatedPrices[2].price,3),
           fastest: gasConverter(estimatedPrices[0].price,3),
         };
-        setGasPricesGP(gasObj);
+        setGasPricesGT(gasObj);
       })
       .catch(error => console.log(error));
   };
@@ -558,7 +563,7 @@ function App(props) {
             <Col span={16}>
             <Radio.Group buttonStyle="solid">
               <Radio.Button
-                value={gasPricesGP && gasPricesGP.fast}
+                value={gasPricesGT && gasPricesGT.fast}
                 style={{
                   margin: 10,
                   padding: 15,
@@ -569,10 +574,10 @@ function App(props) {
                 }}
               >
                 <div style={{ fontSize: 15 }}>fast</div>
-                <div style={{ fontSize: 20 }}>{gasPricesGP && gasPricesGP.fast}</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGT && gasPricesGT.fast}</div>
               </Radio.Button>
               <Radio.Button
-                value={gasPricesGP && gasPricesGP.fastest}
+                value={gasPricesGT && gasPricesGT.fastest}
                 style={{
                   margin: 10,
                   padding: 15,
@@ -583,7 +588,7 @@ function App(props) {
                 }}
               >
                 <div style={{ fontSize: 15 }}>fastest</div>
-                <div style={{ fontSize: 20 }}>{gasPricesGP && gasPricesGP.fastest}</div>
+                <div style={{ fontSize: 20 }}>{gasPricesGT && gasPricesGT.fastest}</div>
               </Radio.Button>
             </Radio.Group>
             </Col>
