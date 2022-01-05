@@ -1,21 +1,32 @@
 // deploy/00_deploy_your_contract.js
 
-//const { ethers } = require("hardhat");
+const { ethers } = require("hardhat");
 
-module.exports = async ({ getNamedAccounts, deployments }) => {
+const localChainId = "31337";
+
+const sleep = (ms) =>
+  new Promise((r) =>
+    setTimeout(() => {
+      // console.log(`waited for ${(ms / 1000).toFixed(3)} seconds`);
+      r();
+    }, ms)
+  );
+
+module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
+  const chainId = await getChainId();
+
   await deploy("YourContract", {
     // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
     from: deployer,
-    //args: [ "Hello", ethers.utils.parseEther("1.5") ],
+    // args: [ "Hello", ethers.utils.parseEther("1.5") ],
     log: true,
   });
 
-  /*
-    // Getting a previously deployed contract
-    const YourContract = await ethers.getContract("YourContract", deployer);
-    await YourContract.setPurpose("Hello");
+  // Getting a previously deployed contract
+  const YourContract = await ethers.getContract("YourContract", deployer);
+  /*  await YourContract.setPurpose("Hello");
   
     To take ownership of yourContract using the ownable library uncomment next line and add the 
     address you want to be the owner. 
@@ -47,5 +58,17 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
    LibraryName: **LibraryAddress**
   });
   */
+
+  // Verify your contracts with Etherscan
+  // You don't want to verify on localhost
+  if (chainId !== localChainId) {
+    // wait for etherscan to be ready to verify
+    await sleep(15000);
+    await run("verify:verify", {
+      address: YourContract.address,
+      contract: "contracts/YourContract.sol:YourContract",
+      contractArguments: [],
+    });
+  }
 };
 module.exports.tags = ["YourContract"];
