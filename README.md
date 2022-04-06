@@ -50,7 +50,7 @@ yarn deploy
 
 # Preview
 🎛 http://eth-wild-west.surge.sh/
-![preview]()
+![preview](https://user-images.githubusercontent.com/35558569/161880961-0fc17f2a-c71c-4c83-b47b-de348181befe.png)
 
 # 📚 Documentation
 
