@@ -262,22 +262,25 @@ function App(props) {
               //   padding: 10,
               // }}
             />
-            { addArr &&
-              addArr.length > 0 &&
-              addArr.map(a => {
-                return (
-                  <>
-                    <Space style={{ textAlign: "center", fontSize: 12 }}>
-                      {a.add}
-                      <Tag>
-                        <a href={a.link} target="_blank">
-                          {a.tag} {a.dat}
-                        </a>
-                      </Tag>
-                    </Space>
-                  </>
-                );
-              })}
+            <Space direction="vertical" size={[3,3]}>
+              { addArr &&
+                addArr.length > 0 &&
+                addArr.map(a => {
+                  return (
+                    <>
+                      <Space style={{ textAlign: "center", fontSize: 12 }}>
+                        {a.add}
+                        <Tag>
+                          <a href={a.link} target="_blank">
+                            {a.tag} {a.dat}
+                          </a>
+                        </Tag>
+                      </Space>
+                    </>
+                  );
+                })
+              }
+            </Space>
           </div>
 
           <div
