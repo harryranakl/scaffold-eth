@@ -32,7 +32,7 @@ let addArr = [];
 const readAddlist = async () => {
   const config = {
     timeout: 30000,
-    url: "https://gist.githubusercontent.com/harryranakl/274da31b5d458a2821ddfe7881397620/raw",
+    url: "https://raw.githubusercontent.com/harryranakl/scaffold-eth/wild-west-metaverse-decode-messages/packages/react-app/list.json",
     method: "get",
     responseType: "json",
   };

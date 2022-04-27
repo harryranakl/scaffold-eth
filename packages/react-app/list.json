@@ -2,9 +2,14 @@
     "data":
     [
         {
+            "add": "0xe36CC0432619247AB12F1Cdd19Bb3E7a24a7F47C",
+            "tag": "Punk Protocol rekt",
+            "link": "https://rekt.news/punkprotocol-rekt/",
+            "dat": "13 aug 2021"
+        },{
             "add": "0xc8a65fadf0e0ddaf421f28feab69bf6e2e589963",
-            "tag": "PolyNetwork exploit",
-            "link": "https://twitter.com/PolyNetwork2/status/1425073987164381196",
+            "tag": "Poly Network rekt",
+            "link": "https://rekt.news/polynetwork-rekt/",
             "dat": "10 aug 2021"
         },
         {
@@ -14,22 +19,22 @@
             "dat": "19 aug 2021"
         },
         {
-            "add": "0x905315602Ed9a854e325F692FF82F58799BEaB57",
-            "tag": "Alpha Finance hack",
-            "link": "https://twitter.com/josebaredes/status/1360476183373242370",
-            "dat": "13 feb 2021"
-        },
-        {
             "add": "0xf9E3D08196F76f5078882d98941b71C0884BEa52",
-            "tag": "Popsicle Finance exploit",
-            "link": "https://twitter.com/defiprime/status/1422708265423556611",
+            "tag": "Popsicle Finance rekt",
+            "link": "https://rekt.news/popsicle-rekt/",
             "dat": "04 aug 2021"
         },
         {
             "add": "0x07E02088D68229300Ae503395c6536f09179dc3e",
-            "tag": "xToken Hack",
-            "link": "https://twitter.com/xtokenmarket/status/1392490733588946948?s=09",
+            "tag": "xToken rekt",
+            "link": "https://rekt.news/xtoken-rekt/",
             "dat": "12 may 2021"
+        },
+        {
+            "add": "0x905315602Ed9a854e325F692FF82F58799BEaB57",
+            "tag": "Alpha Finance rekt",
+            "link": "https://rekt.news/alpha-finance-rekt/",
+            "dat": "13 feb 2021"
         },
         {
             "add": "reference : ",
