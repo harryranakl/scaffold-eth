@@ -2,6 +2,26 @@
     "data":
     [
         {
+            "add": "0x098b716b8aaf21512996dc57eb0615e2383e2f96",
+            "tag": "Ronin Bridge rekt",
+            "link": "https://rekt.news/ronin-rekt/",
+            "dat": "29 mar 2022"
+        },{
+            "add": "0x629e7Da20197a5429d30da36E77d06CdF796b71A",
+            "tag": "Wormhole rekt",
+            "link": "https://rekt.news/wormhole-rekt/",
+            "dat": "3 feb 2022"
+        },{
+            "add": "0x68b22215ff74e3606bd5e6c1de8c2d68180c85f7",
+            "tag": "bitmart rekt",
+            "link": "https://rekt.news/bitmart-rekt/",
+            "dat": "5 dec 2021"
+        },{
+            "add": "0x5578840AAe68682a9779623Fa9e8714802B59946",
+            "tag": "Liquid Exchange hack",
+            "link": "https://twitter.com/Liquid_Global/status/1428176357515612165",
+            "dat": "19 aug 2021"
+        },{
             "add": "0xe36CC0432619247AB12F1Cdd19Bb3E7a24a7F47C",
             "tag": "Punk Protocol rekt",
             "link": "https://rekt.news/punkprotocol-rekt/",
@@ -11,12 +31,6 @@
             "tag": "Poly Network rekt",
             "link": "https://rekt.news/polynetwork-rekt/",
             "dat": "10 aug 2021"
-        },
-        {
-            "add": "0x5578840AAe68682a9779623Fa9e8714802B59946",
-            "tag": "Liquid Exchange hack",
-            "link": "https://twitter.com/Liquid_Global/status/1428176357515612165",
-            "dat": "19 aug 2021"
         },
         {
             "add": "0xf9E3D08196F76f5078882d98941b71C0884BEa52",
