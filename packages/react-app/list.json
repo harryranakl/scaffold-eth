@@ -1,0 +1,41 @@
+{
+    "data":
+    [
+        {
+            "add": "0xc8a65fadf0e0ddaf421f28feab69bf6e2e589963",
+            "tag": "PolyNetwork exploit",
+            "link": "https://twitter.com/PolyNetwork2/status/1425073987164381196",
+            "dat": "10 aug 2021"
+        },
+        {
+            "add": "0x5578840AAe68682a9779623Fa9e8714802B59946",
+            "tag": "Liquid Exchange hack",
+            "link": "https://twitter.com/Liquid_Global/status/1428176357515612165",
+            "dat": "19 aug 2021"
+        },
+        {
+            "add": "0x905315602Ed9a854e325F692FF82F58799BEaB57",
+            "tag": "Alpha Finance hack",
+            "link": "https://twitter.com/josebaredes/status/1360476183373242370",
+            "dat": "13 feb 2021"
+        },
+        {
+            "add": "0xf9E3D08196F76f5078882d98941b71C0884BEa52",
+            "tag": "Popsicle Finance exploit",
+            "link": "https://twitter.com/defiprime/status/1422708265423556611",
+            "dat": "04 aug 2021"
+        },
+        {
+            "add": "0x07E02088D68229300Ae503395c6536f09179dc3e",
+            "tag": "xToken Hack",
+            "link": "https://twitter.com/xtokenmarket/status/1392490733588946948?s=09",
+            "dat": "12 may 2021"
+        },
+        {
+            "add": "reference : ",
+            "tag": "rekt news",
+            "link": "https://rekt.news/",
+            "dat": ""
+        }
+    ]
+}
