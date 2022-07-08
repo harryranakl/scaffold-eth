@@ -2,6 +2,21 @@
     "data":
     [
         {
+            "add": "0x0d043128146654c7683fbf30ac98d7b2285ded00",
+            "tag": "Harmony Bridge rekt",
+            "link": "https://rekt.news/harmony-rekt/",
+            "dat": "24 jun 2022"
+        },{
+            "add": "0x7b792e49f640676b3706d666075e903b3a4deec6",
+            "tag": "Inverse Finance rekt",
+            "link": "https://rekt.news/inverse-rekt2/",
+            "dat": "16 jun 2022"
+        },{
+            "add": "0xA6AF2872176320015f8ddB2ba013B38Cb35d22Ad",
+            "tag": "Fortress BSC rekt",
+            "link": "https://rekt.news/fortress-rekt/",
+            "dat": "9 may 2022"
+        },{
             "add": "0xb3065fE2125C413E973829108F23E872e1DB9A6b",
             "tag": "MM Finance rekt",
             "link": "https://rekt.news/madmeerkat-finance-rekt/",
