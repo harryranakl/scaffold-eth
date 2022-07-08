@@ -2,6 +2,21 @@
     "data":
     [
         {
+            "add": "0xb3065fE2125C413E973829108F23E872e1DB9A6b",
+            "tag": "MM Finance rekt",
+            "link": "https://rekt.news/madmeerkat-finance-rekt/",
+            "dat": "6 may 2022"
+        },{
+            "add": "0x6162759edad730152f0df8115c698a42e666157f",
+            "tag": "Fei - Rari rekt",
+            "link": "https://rekt.news/fei-rari-rekt/",
+            "dat": "1 may 2022"
+        },{
+            "add": "0x63341Ba917De90498F3903B199Df5699b4a55AC0",
+            "tag": "Saddle Finance rekt",
+            "link": "https://rekt.news/saddle-finance-rekt2/",
+            "dat": "1 may 2022"
+        },{
             "add": "0x701428525cbAc59dAe7AF833f19D9C3aaA2a37cb",
             "tag": "Deus DAO rekt",
             "link": "https://rekt.news/deus-dao-rekt-2/",
