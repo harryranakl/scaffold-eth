@@ -2,8 +2,18 @@
     "data":
     [
         {
+            "add": "0x701428525cbAc59dAe7AF833f19D9C3aaA2a37cb",
+            "tag": "Deus DAO rekt",
+            "link": "https://rekt.news/deus-dao-rekt-2/",
+            "dat": "28 apr 2022"
+        },{
+            "add": "0x1c5dcdd006ea78a7e4783f9e6021c32935a10fb4",
+            "tag": "Beanstalk rekt",
+            "link": "https://rekt.news/beanstalk-rekt/",
+            "dat": "18 apr 2022"
+        },{
             "add": "0x371d7c9e4464576d45f11b27cf88578983d63d75",
-            "tag": "nverse Finance rekt",
+            "tag": "Inverse Finance rekt",
             "link": "https://rekt.news/inverse-finance-rekt/",
             "dat": "2 apr 2022"
         },{
