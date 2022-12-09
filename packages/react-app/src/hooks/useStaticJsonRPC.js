@@ -9,7 +9,7 @@ const createProvider = async url => {
   return p;
 };
 
-export default function useStaticJsonRPC(urlArray) {
+export default function useStaticJsonRPC(urlArray, localProvider = null) {
   const [provider, setProvider] = useState(null);
 
   const handleProviders = useCallback(async () => {
@@ -22,11 +22,19 @@ export default function useStaticJsonRPC(urlArray) {
       // todo: show notification error about provider issues
       console.log(error);
     }
-  });
+  }, [urlArray]);
 
   useEffect(() => {
+    // Re-use the localProvider if it's mainnet (to use only one instance of it)
+    if (localProvider && localProvider?._network.chainId === 1) {
+      setProvider(localProvider);
+      return;
+    }
+
     handleProviders();
-  }, [JSON.stringify(urlArray)]);
+
+    // eslint-disable-next-line
+  }, [JSON.stringify(urlArray), localProvider]);
 
   return provider;
 }

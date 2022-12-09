@@ -4,13 +4,13 @@ const { ethers } = require("hardhat");
 
 const localChainId = "31337";
 
-const sleep = (ms) =>
-  new Promise((r) =>
-    setTimeout(() => {
-      // console.log(`waited for ${(ms / 1000).toFixed(3)} seconds`);
-      r();
-    }, ms)
-  );
+// const sleep = (ms) =>
+//   new Promise((r) =>
+//     setTimeout(() => {
+//       console.log(`waited for ${(ms / 1000).toFixed(3)} seconds`);
+//       r();
+//     }, ms)
+//   );
 
 module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const { deploy } = deployments;
@@ -22,17 +22,21 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
     from: deployer,
     // args: [ "Hello", ethers.utils.parseEther("1.5") ],
     log: true,
+    waitConfirmations: 5,
   });
 
   // Getting a previously deployed contract
   const YourContract = await ethers.getContract("YourContract", deployer);
   /*  await YourContract.setPurpose("Hello");
   
-    To take ownership of yourContract using the ownable library uncomment next line and add the 
-    address you want to be the owner. 
-    // yourContract.transferOwnership(YOUR_ADDRESS_HERE);
+    // To take ownership of yourContract using the ownable library uncomment next line and add the 
+    // address you want to be the owner. 
+    
+    await YourContract.transferOwnership(
+      "ADDRESS_HERE"
+    );
 
-    //const yourContract = await ethers.getContractAt('YourContract', "0xaAC799eC2d00C013f1F11c37E654e59B0429DF6A") //<-- if you want to instantiate a version of a contract at a specific address!
+    //const YourContract = await ethers.getContractAt('YourContract', "0xaAC799eC2d00C013f1F11c37E654e59B0429DF6A") //<-- if you want to instantiate a version of a contract at a specific address!
   */
 
   /*
@@ -59,16 +63,20 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   });
   */
 
-  // Verify your contracts with Etherscan
+  // Verify from the command line by running `yarn verify`
+
+  // You can also Verify your contracts with Etherscan here...
   // You don't want to verify on localhost
-  if (chainId !== localChainId) {
-    // wait for etherscan to be ready to verify
-    await sleep(15000);
-    await run("verify:verify", {
-      address: YourContract.address,
-      contract: "contracts/YourContract.sol:YourContract",
-      contractArguments: [],
-    });
-  }
+  // try {
+  //   if (chainId !== localChainId) {
+  //     await run("verify:verify", {
+  //       address: YourContract.address,
+  //       contract: "contracts/YourContract.sol:YourContract",
+  //       constructorArguments: [],
+  //     });
+  //   }
+  // } catch (error) {
+  //   console.error(error);
+  // }
 };
 module.exports.tags = ["YourContract"];
